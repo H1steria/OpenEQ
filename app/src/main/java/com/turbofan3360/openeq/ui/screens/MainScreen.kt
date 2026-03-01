@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
@@ -35,13 +36,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.times
-import androidx.compose.ui.Alignment
+import android.content.res.Configuration
 
 import com.turbofan3360.openeq.ui.components.VerticalSlider
-
-// TODO: Make layout adaptive to different screen orientations
 
 // CenterAlignedTopAppBar is an experimental API so need to allow it
 @Composable
@@ -52,6 +53,9 @@ fun MainScreen(
     updateEqLevel: (Int, Float) -> Unit,
     frequencyBands: List<String>
 ) {
+    // Grabbing screen orientation and setting it as boolean
+    val orientation = if(LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) true else false
+
     Scaffold(
         // Creating the "OpenEQ" app bar at the top of the main screen
         topBar = {AppTitle()},
@@ -65,7 +69,8 @@ fun MainScreen(
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     // Shifting everything to the right first
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     // Adding the button to zero all sliders
                     ResetButton(updateEqLevel)
@@ -75,15 +80,16 @@ fun MainScreen(
         // Creating the EQ on/off toggle button at the bottom
         floatingActionButton = {PowerButton(eqEnabled, eqToggle)},
         // Centering the EQ on/off toggle button
-        floatingActionButtonPosition = FabPosition.Center
+        floatingActionButtonPosition = if (orientation) FabPosition.Center else FabPosition.End
     ) {
         // Defining content: Draws a colored background that fills the page, and then draws the EQ Sliders on it
         innerPadding ->
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize().background(color=MaterialTheme.colorScheme.background).padding(paddingValues=innerPadding),
         ) {
+            // Grabbing scope (i.e. box size) parameters
             val scope = this
-            EQSliders(scope.maxHeight, frequencyBands, eqLevels, updateEqLevel)
+            EQSliders(scope.maxHeight, scope.maxWidth, orientation, frequencyBands, eqLevels, updateEqLevel)
         }
     }
 }
@@ -91,18 +97,26 @@ fun MainScreen(
 @Composable
 private fun EQSliders(
     boxHeight: Dp,
+    boxWidth: Dp,
+    orientation: Boolean,
     frequencyBands: List<String>,
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit
     ) {
-    val sliderHeight = 0.625f*boxHeight
+    // Simple scaling of sliders and spacers to adapt to the screen size - changes scaling depending on screen orientation
+    val sliderHeight = if (orientation) 0.625f*boxHeight else 0.8f*boxHeight
     val spacerHeight = (boxHeight-sliderHeight)/10
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        // Tweaks positioning of sliders depending on screen orientation
+        modifier = if (orientation) Modifier.fillMaxWidth() else Modifier.width(0.85f*boxWidth),
         // Evenly spacing the 10 EQ sliders across the screen
         horizontalArrangement = Arrangement.SpaceAround
     ) {
+        // If in landscape: spacing things in from the screen edge a little bit
+        if (!orientation) {
+            Spacer(modifier=Modifier.width(0.025f*boxWidth))
+        }
         // Repeating the slider 10 times across the screen
         repeat(10) { sliderNo ->
             // Generates 1 EQ slider with labels
