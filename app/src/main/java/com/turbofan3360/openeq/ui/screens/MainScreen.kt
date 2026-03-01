@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,11 +39,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.times
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.mutableStateListOf
 import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalDensity
 
 import com.turbofan3360.openeq.ui.components.VerticalSlider
+
+private var thumbPositions = mutableStateListOf(*MutableList(10) {i -> Offset(x=0f, y=0f)}.toTypedArray())
 
 // CenterAlignedTopAppBar is an experimental API so need to allow it
 @Composable
@@ -54,7 +63,7 @@ fun MainScreen(
     frequencyBands: List<String>
 ) {
     // Grabbing screen orientation and setting it as boolean
-    val orientation = if(LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT) true else false
+    val isPortrait = (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT)
 
     Scaffold(
         // Creating the "OpenEQ" app bar at the top of the main screen
@@ -80,16 +89,18 @@ fun MainScreen(
         // Creating the EQ on/off toggle button at the bottom
         floatingActionButton = {PowerButton(eqEnabled, eqToggle)},
         // Centering the EQ on/off toggle button
-        floatingActionButtonPosition = if (orientation) FabPosition.Center else FabPosition.End
+        floatingActionButtonPosition = if (isPortrait) FabPosition.Center else FabPosition.End
     ) {
-        // Defining content: Draws a colored background that fills the page, and then draws the EQ Sliders on it
+        // Defining content: Draws a colored background that fills the page, draws the EQ Sliders on it, and then a curve between the EQ sliders
         innerPadding ->
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize().background(color=MaterialTheme.colorScheme.background).padding(paddingValues=innerPadding),
         ) {
             // Grabbing scope (i.e. box size) parameters
             val scope = this
-            EQSliders(scope.maxHeight, scope.maxWidth, orientation, frequencyBands, eqLevels, updateEqLevel)
+            EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqLevels, updateEqLevel)
+            // Drawing the curve on top of the EQ sliders
+            EQCurve(MaterialTheme.colorScheme.primary, with(LocalDensity.current) {innerPadding.calculateTopPadding().toPx()})
         }
     }
 }
@@ -98,23 +109,23 @@ fun MainScreen(
 private fun EQSliders(
     boxHeight: Dp,
     boxWidth: Dp,
-    orientation: Boolean,
+    isPortrait: Boolean,
     frequencyBands: List<String>,
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit
     ) {
     // Simple scaling of sliders and spacers to adapt to the screen size - changes scaling depending on screen orientation
-    val sliderHeight = if (orientation) 0.625f*boxHeight else 0.8f*boxHeight
+    val sliderHeight = if (isPortrait) 0.625f*boxHeight else 0.8f*boxHeight
     val spacerHeight = (boxHeight-sliderHeight)/10
 
     Row(
         // Tweaks positioning of sliders depending on screen orientation
-        modifier = if (orientation) Modifier.fillMaxWidth() else Modifier.width(0.85f*boxWidth),
+        modifier = if (isPortrait) Modifier.fillMaxWidth() else Modifier.width(0.85f*boxWidth),
         // Evenly spacing the 10 EQ sliders across the screen
         horizontalArrangement = Arrangement.SpaceAround
     ) {
         // If in landscape: spacing things in from the screen edge a little bit
-        if (!orientation) {
+        if (!isPortrait) {
             Spacer(modifier=Modifier.width(0.025f*boxWidth))
         }
         // Repeating the slider 10 times across the screen
@@ -144,6 +155,7 @@ private fun EQSliders(
                     value = eqLevels[sliderNo],
                     // Modifying state variable when slider moved
                     onValueChange = { newValue -> updateEqLevel(sliderNo, roundOneDP(newValue)) },
+                    updateThumbPosition = {coordinates -> thumbPositions[sliderNo] = coordinates},
                     trackColor = MaterialTheme.colorScheme.tertiary,
                     thumbColor = MaterialTheme.colorScheme.primary,
                     // Slider can go from -18dB to +18dB
@@ -161,6 +173,40 @@ private fun EQSliders(
                 )
             }
         }
+    }
+}
+
+
+@Composable
+private fun EQCurve(
+    pathColor: Color,
+    topPadding: Float
+    ) {
+    // Generates the curve between each of the EQ points
+    Canvas(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        var path = Path()
+        // Moving to the starting point
+        path.moveTo(thumbPositions[0].x, thumbPositions[0].y - topPadding)
+        // Iterating through terms to add curves between thumb points on sliders to the path
+        for (i in 0..8) {
+            path.quadraticTo(
+                // Control point
+                x1 = (thumbPositions[i].x+thumbPositions[i+1].x)/2,
+                y1 = thumbPositions[i].y+(thumbPositions[i+1].y-thumbPositions[i].y)/4 - topPadding,
+                // Destination point
+                x2 = thumbPositions[i+1].x,
+                y2 = thumbPositions[i+1].y - topPadding
+            )
+        }
+        // Drawing the path
+        drawPath(
+            color = pathColor,
+            alpha = 0.75f,
+            style = Stroke(width = 10f),
+            path = path
+        )
     }
 }
 

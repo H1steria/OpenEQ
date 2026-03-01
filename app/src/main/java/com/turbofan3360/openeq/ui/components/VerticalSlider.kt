@@ -14,6 +14,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionOnScreen
+import androidx.compose.ui.platform.LocalDensity
 
 private const val heightToWidth: Float = 0.02f
 
@@ -22,11 +25,19 @@ fun VerticalSlider(
     height: Dp,
     value: Float,
     onValueChange: (Float) -> Unit,
+    updateThumbPosition: (Offset) -> Unit,
     trackColor: Color,
     thumbColor: Color,
     valueRange: ClosedFloatingPointRange<Float>
     ) {
     // Draws and handles a vertical slider component
+
+    // Calculates the position offsets for the thumb circle
+    val heightPx = with(LocalDensity.current) {height.toPx()}
+    val thumbCircleOffsets = Offset(x=heightToWidth*heightPx,
+        y=(heightPx/(valueRange.endInclusive - valueRange.start))*(valueRange.endInclusive - value)
+    )
+
     // Creates the canvas
     Canvas(
         modifier = Modifier
@@ -41,6 +52,12 @@ fun VerticalSlider(
                     onValueChange((value-0.04f*dragChange).coerceIn(valueRange.start, valueRange.endInclusive))
                 }
             )
+            // Hands back coordinates of thumb circle on slider
+            .onGloballyPositioned { coordinates ->
+                val canvasPos = coordinates.positionOnScreen()
+
+                updateThumbPosition(canvasPos + thumbCircleOffsets)
+            }
     ) {
         // Draws the central bar of the slider (with rounded ends)
         drawRoundRect(
@@ -56,9 +73,7 @@ fun VerticalSlider(
             style = Fill,
             radius = heightToWidth*height.toPx(),
             // Calculating where the center should be based on the range and value of the slider
-            center = Offset(x=heightToWidth*height.toPx(),
-                y=(height.toPx()/(valueRange.endInclusive - valueRange.start))*(valueRange.endInclusive - value)
-            )
+            center = thumbCircleOffsets
         )
     }
 }
