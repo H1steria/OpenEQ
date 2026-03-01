@@ -50,6 +50,8 @@ import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalDensity
 
 import com.turbofan3360.openeq.ui.components.VerticalSlider
+import com.turbofan3360.openeq.ui.utils.roundOneDP
+import com.turbofan3360.openeq.ui.utils.generateSplineControlPoint
 
 private var thumbPositions = mutableStateListOf(*MutableList(10) {i -> Offset(x=0f, y=0f)}.toTypedArray())
 
@@ -98,9 +100,10 @@ fun MainScreen(
         ) {
             // Grabbing scope (i.e. box size) parameters
             val scope = this
+            val topPadding = with(LocalDensity.current) {innerPadding.calculateTopPadding().toPx()}
             EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqLevels, updateEqLevel)
             // Drawing the curve on top of the EQ sliders
-            EQCurve(MaterialTheme.colorScheme.primary, with(LocalDensity.current) {innerPadding.calculateTopPadding().toPx()})
+            EQCurve(MaterialTheme.colorScheme.primary, topPadding)
         }
     }
 }
@@ -188,22 +191,35 @@ private fun EQCurve(
     ) {
         var path = Path()
         // Moving to the starting point
-        path.moveTo(thumbPositions[0].x, thumbPositions[0].y - topPadding)
+        path.moveTo(thumbPositions[0].x, thumbPositions[0].y-topPadding)
         // Iterating through terms to add curves between thumb points on sliders to the path
         for (i in 0..8) {
-            path.quadraticTo(
-                // Control point
-                x1 = (thumbPositions[i].x+thumbPositions[i+1].x)/2,
-                y1 = thumbPositions[i].y+(thumbPositions[i+1].y-thumbPositions[i].y)/4 - topPadding,
+            // Finding curve control points
+            val (point1, point2) = generateSplineControlPoint(
+                // Handling edge case with first point
+                if (i!=0) thumbPositions[i-1] else Offset(x=thumbPositions[0].x-10f, y=thumbPositions[0].y),
+                thumbPositions[i],
+                thumbPositions[i+1],
+                // Handling edge case with final point
+                if (i!=8) thumbPositions[i+2] else Offset(x=thumbPositions[9].x+10f, y=thumbPositions[9].y)
+            )
+            // Adding another curve to the spline
+            path.cubicTo(
+                // Control point 1
+                x1 = point1.x,
+                y1 = point1.y-topPadding,
+                // Control point 2
+                x2 = point2.x,
+                y2 = point2.y-topPadding,
                 // Destination point
-                x2 = thumbPositions[i+1].x,
-                y2 = thumbPositions[i+1].y - topPadding
+                x3 = thumbPositions[i+1].x,
+                y3 = thumbPositions[i+1].y-topPadding
             )
         }
         // Drawing the path
         drawPath(
             color = pathColor,
-            alpha = 0.75f,
+            alpha = 0.5f,
             style = Stroke(width = 10f),
             path = path
         )
@@ -299,9 +315,4 @@ private fun ResetButton(
             contentDescription="Set all EQ channels back to 0"
         )
     }
-}
-
-private fun roundOneDP(floatValue: Float): Float {
-    // Utility to round floats to one decimal place
-    return ((floatValue * 10).toInt()).toFloat() / 10
 }

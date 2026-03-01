@@ -63,6 +63,7 @@ fun VerticalSlider(
         drawRoundRect(
             color = trackColor,
             style = Fill,
+            alpha = 0.75f,
             size = Size(0.5f*heightToWidth*height.toPx(), height.toPx()),
             cornerRadius = CornerRadius(2f*heightToWidth*height.toPx()),
             topLeft = Offset(x=0.75f*heightToWidth*height.toPx(), y=0f)
