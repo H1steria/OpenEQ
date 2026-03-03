@@ -53,7 +53,7 @@ import com.turbofan3360.openeq.ui.components.VerticalSlider
 import com.turbofan3360.openeq.ui.utils.roundOneDP
 import com.turbofan3360.openeq.ui.utils.generateSplineControlPoint
 
-private var thumbPositions = mutableStateListOf(*MutableList(10) {i -> Offset(x=0f, y=0f)}.toTypedArray())
+// TODO: Preset saving & dropdown menu
 
 // CenterAlignedTopAppBar is an experimental API so need to allow it
 @Composable
@@ -64,6 +64,8 @@ fun MainScreen(
     updateEqLevel: (Int, Float) -> Unit,
     frequencyBands: List<String>
 ) {
+    // Saving state of thumb positions on sliders
+    val thumbPositions = remember { mutableStateListOf(*MutableList(frequencyBands.size) {Offset.Zero}.toTypedArray()) }
     // Grabbing screen orientation and setting it as boolean
     val isPortrait = (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT)
 
@@ -84,7 +86,7 @@ fun MainScreen(
                     verticalAlignment = Alignment.Bottom
                 ) {
                     // Adding the button to zero all sliders
-                    ResetButton(updateEqLevel)
+                    ResetButton(updateEqLevel, frequencyBands.size)
                 }
             }
         },
@@ -101,9 +103,9 @@ fun MainScreen(
             // Grabbing scope (i.e. box size) parameters
             val scope = this
             val topPadding = with(LocalDensity.current) {innerPadding.calculateTopPadding().toPx()}
-            EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqLevels, updateEqLevel)
+            EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqLevels, updateEqLevel, thumbPositions)
             // Drawing the curve on top of the EQ sliders
-            EQCurve(MaterialTheme.colorScheme.primary, topPadding)
+            EQCurve(MaterialTheme.colorScheme.primary, topPadding, thumbPositions)
         }
     }
 }
@@ -115,7 +117,8 @@ private fun EQSliders(
     isPortrait: Boolean,
     frequencyBands: List<String>,
     eqLevels: MutableList<Float>,
-    updateEqLevel: (Int, Float) -> Unit
+    updateEqLevel: (Int, Float) -> Unit,
+    thumbPositions: MutableList<Offset>
     ) {
     // Simple scaling of sliders and spacers to adapt to the screen size - changes scaling depending on screen orientation
     val sliderHeight = if (isPortrait) 0.625f*boxHeight else 0.8f*boxHeight
@@ -124,15 +127,15 @@ private fun EQSliders(
     Row(
         // Tweaks positioning of sliders depending on screen orientation
         modifier = if (isPortrait) Modifier.fillMaxWidth() else Modifier.width(0.85f*boxWidth),
-        // Evenly spacing the 10 EQ sliders across the screen
+        // Evenly spacing the EQ sliders across the screen
         horizontalArrangement = Arrangement.SpaceAround
     ) {
         // If in landscape: spacing things in from the screen edge a little bit
         if (!isPortrait) {
             Spacer(modifier=Modifier.width(0.025f*boxWidth))
         }
-        // Repeating the slider 10 times across the screen
-        repeat(10) { sliderNo ->
+        // Repeating the slider the right number of times across the screen
+        repeat(frequencyBands.size) { sliderNo ->
             // Generates 1 EQ slider with labels
             Column(
                 verticalArrangement = Arrangement.Center,
@@ -183,17 +186,18 @@ private fun EQSliders(
 @Composable
 private fun EQCurve(
     pathColor: Color,
-    topPadding: Float
+    topPadding: Float,
+    thumbPositions: List<Offset>
     ) {
     // Generates the curve between each of the EQ points
     Canvas(
         modifier = Modifier.fillMaxSize()
     ) {
-        var path = Path()
+        val path = Path()
         // Moving to the starting point
         path.moveTo(thumbPositions[0].x, thumbPositions[0].y-topPadding)
         // Iterating through terms to add curves between thumb points on sliders to the path
-        for (i in 0..8) {
+        for (i in 0..(thumbPositions.size-2)) {
             // Finding curve control points
             val (point1, point2) = generateSplineControlPoint(
                 // Handling edge case with first point
@@ -201,7 +205,8 @@ private fun EQCurve(
                 thumbPositions[i],
                 thumbPositions[i+1],
                 // Handling edge case with final point
-                if (i!=8) thumbPositions[i+2] else Offset(x=thumbPositions[9].x+20, y=thumbPositions[9].y)
+                if (i!=thumbPositions.size-2) thumbPositions[i+2] else Offset(x=thumbPositions[thumbPositions.size-1].x+20,
+                                                                                y=thumbPositions[thumbPositions.size-1].y)
             )
             // Adding another curve to the spline
             path.cubicTo(
@@ -307,10 +312,11 @@ private fun PowerButton(eqEnabled: Boolean, eqToggle: () -> Unit) {
 
 @Composable
 private fun ResetButton(
-    updateEqLevel: (Int, Float) -> Unit
+    updateEqLevel: (Int, Float) -> Unit,
+    numEqBands: Int
     ) {
     // Handles the button that resets all the sliders to 0 dB
-    IconButton(onClick = {for (i in 0..9) updateEqLevel(i, 0.0f)}) {
+    IconButton(onClick = {for (i in 0..<numEqBands) updateEqLevel(i, 0.0f)}) {
         Icon(
             imageVector = Icons.Rounded.SettingsBackupRestore,
             contentDescription="Set all EQ channels back to 0"

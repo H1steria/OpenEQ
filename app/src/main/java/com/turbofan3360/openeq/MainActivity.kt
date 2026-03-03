@@ -13,20 +13,18 @@ import androidx.lifecycle.ViewModel
 
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
+import com.turbofan3360.openeq.audioprocessing.getEqBands
+import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 
 class MainActivityViewModel: ViewModel() {
     // State - whether EQ service is enabled or not
     var eqEnabled by mutableStateOf(false)
-    // State of the sliders (and so EQ levels)
-    var eqLevels = mutableStateListOf(0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f)
-    // EQ frequency bands in Hz
-    val eqFrequencyBandsFlt = listOf(
-        31.25f, 62.5f, 125f, 250f, 500f, 1000f, 2000f, 4000f, 8000f, 16000f
-    )
+    // EQ frequency bands in milliHz
+    val eqFrequencyBands = getEqBands()
     // String labels for EQ frequency bands
-    val eqFrequencyBandsStr = listOf(
-        "31.25", "62.5", "125", "250", "500", "1K", "2K", "4K", "8K", "16K"
-    )
+    val eqFrequencyBandsStr = eqFrequenciesToLabels(eqFrequencyBands)
+    // State of the sliders (and so EQ levels)
+    var eqLevels = mutableStateListOf(*MutableList(eqFrequencyBands.size) {0f}.toTypedArray())
 }
 
 class MainActivity : ComponentActivity() {
@@ -41,7 +39,7 @@ class MainActivity : ComponentActivity() {
                     eqToggle = {viewModel.eqEnabled = !viewModel.eqEnabled},
                     viewModel.eqLevels,
                     updateEqLevel = {index:Int, value:Float -> viewModel.eqLevels[index] = value},
-                    viewModel.eqFrequencyBandsStr
+                    frequencyBands = viewModel.eqFrequencyBandsStr,
                 )
             }
         }
