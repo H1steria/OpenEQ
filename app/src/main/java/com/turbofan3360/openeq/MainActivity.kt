@@ -34,31 +34,51 @@ class MainActivityViewModel: ViewModel() {
 }
 
 class MainActivity : ComponentActivity() {
+    lateinit var foregroundServiceIntent: Intent
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Handles starting the app UI
         setContent {
             val myViewModel: MainActivityViewModel = viewModel()
             OpenEQTheme {
                 MainScreen(
                     myViewModel.eqEnabled,
-                    eqToggle = {myViewModel.eqEnabled = !myViewModel.eqEnabled},
+                    eqToggle = {
+                        myViewModel.eqEnabled = !myViewModel.eqEnabled
+                        // Handles starting/stopping the foreground service to listen for media streams starting
+                        if (myViewModel.eqEnabled) {
+                            startMediaListenService()
+                        }
+                        else {
+                            stopMediaListenService()
+                        }
+                               },
                     myViewModel.eqLevels,
-                    updateEqLevel = {index:Int, value:Float -> myViewModel.eqLevels[index] = value},
+                    updateEqLevel = {index:Int, value:Float ->
+                        myViewModel.eqLevels[index] = value},
                     frequencyBands = myViewModel.eqFrequencyBandsStr,
                 )
             }
         }
+    }
 
+    private fun startMediaListenService() {
         // Checking for and requesting notification permission if not already given
         checkNotificationPermission()
-
-        // Starts the foreground service to listen for media streams
-        val foregroundServiceIntent = Intent(this, EQMediaListenerService::class.java)
+        // Handles starting the foreground service that listens for media streams starting
+        foregroundServiceIntent = Intent(this, EQMediaListenerService::class.java)
         this.startForegroundService(foregroundServiceIntent)
     }
 
-    fun checkNotificationPermission(
+    private fun stopMediaListenService() {
+        // Stops the foreground service that listens for media streams starting
+        stopService(foregroundServiceIntent)
+    }
+
+    private fun checkNotificationPermission(
     ) {
         // Function to check whether notification permission is given, and request it if not
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -75,6 +95,5 @@ class MainActivity : ComponentActivity() {
                 )
             }
         }
-        return
     }
 }
