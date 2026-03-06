@@ -45,9 +45,11 @@ import androidx.compose.ui.unit.times
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.runtime.mutableStateListOf
 import android.content.res.Configuration
-import androidx.compose.ui.platform.LocalDensity
+import com.turbofan3360.openeq.R
 
 import com.turbofan3360.openeq.ui.components.VerticalSlider
 import com.turbofan3360.openeq.ui.utils.roundOneDP
@@ -245,7 +247,7 @@ private fun AppTitle() {
         // App title text
         title = {
             Text(
-                "OpenEQ",
+                stringResource(R.string.app_name),
                 style = MaterialTheme.typography.titleLarge
             )
         },
@@ -271,7 +273,7 @@ private fun AppTitle() {
                     // Menu item text
                     text = {
                         Text(
-                            "About",
+                            stringResource(R.string.menu_info),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.secondary
                         )

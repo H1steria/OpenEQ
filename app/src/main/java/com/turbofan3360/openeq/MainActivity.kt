@@ -1,6 +1,10 @@
 package com.turbofan3360.openeq
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.content.Intent
 import android.os.Bundle
+import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -8,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.ViewModel
 
@@ -15,6 +20,7 @@ import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
 import com.turbofan3360.openeq.audioprocessing.getEqBands
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
+import com.turbofan3360.openeq.audioprocessing.EQMediaListenerService
 
 class MainActivityViewModel: ViewModel() {
     // State - whether EQ service is enabled or not
@@ -32,16 +38,43 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            val viewModel: MainActivityViewModel = viewModel()
+            val myViewModel: MainActivityViewModel = viewModel()
             OpenEQTheme {
                 MainScreen(
-                    viewModel.eqEnabled,
-                    eqToggle = {viewModel.eqEnabled = !viewModel.eqEnabled},
-                    viewModel.eqLevels,
-                    updateEqLevel = {index:Int, value:Float -> viewModel.eqLevels[index] = value},
-                    frequencyBands = viewModel.eqFrequencyBandsStr,
+                    myViewModel.eqEnabled,
+                    eqToggle = {myViewModel.eqEnabled = !myViewModel.eqEnabled},
+                    myViewModel.eqLevels,
+                    updateEqLevel = {index:Int, value:Float -> myViewModel.eqLevels[index] = value},
+                    frequencyBands = myViewModel.eqFrequencyBandsStr,
                 )
             }
         }
+
+        // Checking for and requesting notification permission if not already given
+        checkNotificationPermission()
+
+        // Starts the foreground service to listen for media streams
+        val foregroundServiceIntent = Intent(this, EQMediaListenerService::class.java)
+        this.startForegroundService(foregroundServiceIntent)
+    }
+
+    fun checkNotificationPermission(
+    ) {
+        // Function to check whether notification permission is given, and request it if not
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Checking notifications are enabled
+            val notificationPermission =
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+
+            // Requesting permission if not enabled
+            if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    0
+                )
+            }
+        }
+        return
     }
 }
