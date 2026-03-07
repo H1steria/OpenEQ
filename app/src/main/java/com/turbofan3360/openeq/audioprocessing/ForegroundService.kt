@@ -6,11 +6,13 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.checkSelfPermission
 
 import com.turbofan3360.openeq.MainActivity
@@ -22,6 +24,8 @@ private const val NOTIFICATION_ID = 1
 class EQMediaListenerService: Service() {
     // Initialises on first access to variable
     val notificationManager: NotificationManager by lazy{getSystemService(NOTIFICATION_SERVICE) as NotificationManager}
+    val mediaStreamStartListener = MediaStreamStartReceiver()
+    val mediaStreamStopListener = MediaStreamStopReceiver()
 
     override fun onBind(intent: Intent): IBinder? {
         // Required method; not used in this service
@@ -33,7 +37,20 @@ class EQMediaListenerService: Service() {
         // Calling the function that handles creating the notification
         eqNotification()
 
-        // TODO: START CO-ROUTINE TO LISTEN FOR MEDIA STREAMS
+        // Registering the broadcast receiver to listen for media streams starting
+        ContextCompat.registerReceiver(
+            this,
+            mediaStreamStartListener,
+            IntentFilter("android.media.action.OPEN_AUDIO_EFFECT_CONTROL_SESSION"),
+            ContextCompat.RECEIVER_EXPORTED
+        )
+        // Registering the broadcast receiver to listen for media streams stopping
+        ContextCompat.registerReceiver(
+            this,
+            mediaStreamStopListener,
+            IntentFilter("android.media.action.CLOSE_AUDIO_EFFECT_CONTROL_SESSION"),
+            ContextCompat.RECEIVER_EXPORTED
+        )
 
         return START_STICKY
     }
@@ -42,6 +59,9 @@ class EQMediaListenerService: Service() {
         // Tidies up everything when stopping the foreground service
         // Deletes notification
         NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
+        // Unregistering the broadcast receivers
+        this.unregisterReceiver(mediaStreamStartListener)
+        this.unregisterReceiver(mediaStreamStopListener)
     }
 
     private fun eqNotification() {
@@ -66,7 +86,7 @@ class EQMediaListenerService: Service() {
             .setContentText(getString(R.string.notification_info))
             .setContentIntent(tapIntent)
             .setOngoing(true)
-            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
