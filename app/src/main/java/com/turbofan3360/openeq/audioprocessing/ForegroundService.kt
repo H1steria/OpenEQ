@@ -1,11 +1,13 @@
 package com.turbofan3360.openeq.audioprocessing
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -14,12 +16,12 @@ import androidx.core.content.ContextCompat.checkSelfPermission
 import com.turbofan3360.openeq.MainActivity
 import com.turbofan3360.openeq.R
 
-private const val NOTIFICATION_ID = 0
-private const val FOREGROUND_NOTIFICATION_CHANEL_ID = "0"
+private const val NOTIFICATION_ID = 1
 
 // Foreground service that listens for media streams starting and then attaches equalizers to them
 class EQMediaListenerService: Service() {
-    lateinit var notificationManager: NotificationManager
+    // Initialises on first access to variable
+    val notificationManager: NotificationManager by lazy{getSystemService(NOTIFICATION_SERVICE) as NotificationManager}
 
     override fun onBind(intent: Intent): IBinder? {
         // Required method; not used in this service
@@ -40,12 +42,11 @@ class EQMediaListenerService: Service() {
         // Tidies up everything when stopping the foreground service
         // Deletes notification
         NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
-        // Deletes notification channel (to prevent repeating a new notification channel if service re-started)
-        notificationManager.deleteNotificationChannel(FOREGROUND_NOTIFICATION_CHANEL_ID)
     }
 
     private fun eqNotification() {
-        if (checkSelfPermission(this, NOTIFICATION_SERVICE) == PackageManager.PERMISSION_DENIED) {
+        if (checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_DENIED
+            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             return
         }
 
@@ -67,25 +68,31 @@ class EQMediaListenerService: Service() {
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
 
         // Shows notification on notification channel
-        with (NotificationManagerCompat.from(this)) {
-            notify(NOTIFICATION_ID, notification.build())
-        }
+        startForeground(NOTIFICATION_ID, notification)
     }
 
     private fun createEqNotificationChannel(
         channelName: String,
         channelDescription: String,
     ){
+        // Checking if it already exists:
+        val existingChannel = notificationManager.getNotificationChannel(NOTIFICATION_ID.toString())
 
-        // Creates a notification channel that notifications can then be posted to
-        val importance = NotificationManager.IMPORTANCE_LOW
-        val channel = NotificationChannel(FOREGROUND_NOTIFICATION_CHANEL_ID, channelName, importance).apply {
-            description = channelDescription
+        if (existingChannel == null) {
+            // Creates a notification channel that notifications can then be posted to
+            val importance = NotificationManager.IMPORTANCE_LOW
+            val channel = NotificationChannel(
+                NOTIFICATION_ID.toString(),
+                channelName,
+                importance
+            ).apply {
+                description = channelDescription
+            }
+            // Register the channel with the system
+            notificationManager.createNotificationChannel(channel)
         }
-        // Register the channel with the system
-        notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        notificationManager.createNotificationChannel(channel)
     }
 }

@@ -78,8 +78,7 @@ class MainActivity : ComponentActivity() {
         stopService(foregroundServiceIntent)
     }
 
-    private fun checkNotificationPermission(
-    ) {
+    private fun checkNotificationPermission() {
         // Function to check whether notification permission is given, and request it if not
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // Checking notifications are enabled
@@ -87,7 +86,7 @@ class MainActivity : ComponentActivity() {
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
 
             // Requesting permission if not enabled
-            if (notificationPermission != PackageManager.PERMISSION_GRANTED) {
+            if (notificationPermission == PackageManager.PERMISSION_DENIED) {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(Manifest.permission.POST_NOTIFICATIONS),
