@@ -160,10 +160,10 @@ class EQMediaListenerService: Service() {
             // Getting audio stream ID
             val mediaStreamID = intent?.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, 0)
 
-            // If the ID isn't null, creates an equalizer object attached to that stream
+            // If the ID is valid, creates an equalizer object attached to that stream
             // Saves the equalizer object to the map
             // Then sets the equalizer levels on that EQ object to the current levels
-            if(mediaStreamID != null) {
+            if(mediaStreamID != null && mediaStreamID != 0 && !eqObjects.containsKey(mediaStreamID)) {
                 eqObjects[mediaStreamID] = addEqualizer(mediaStreamID)
                 setEqualizer(eqObjects[mediaStreamID]!!, eqLevels)
             }
@@ -176,8 +176,8 @@ class EQMediaListenerService: Service() {
             // Getting audio stream ID
             val mediaStreamID = intent?.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, 0)
 
-            // If the ID isn't null, gets the EQ object attached to the given media stream, closes the EQ, and removes it from the map
-            if (mediaStreamID != null) {
+            // If the ID is valid, gets the EQ object attached to the given media stream, closes the EQ, and removes it from the map
+            if (mediaStreamID != null && mediaStreamID != 0) {
                 val eqObj = eqObjects[mediaStreamID]
 
                 if (eqObj != null) {

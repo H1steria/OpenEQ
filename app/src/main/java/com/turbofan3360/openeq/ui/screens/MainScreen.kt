@@ -64,7 +64,8 @@ fun MainScreen(
     eqToggle: () -> Unit,
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit,
-    frequencyBands: List<String>
+    frequencyBands: List<String>,
+    eqRange: List<Float>
 ) {
     // Saving state of thumb positions on sliders
     val thumbPositions = remember { mutableStateListOf(*MutableList(frequencyBands.size) {Offset.Zero}.toTypedArray()) }
@@ -105,7 +106,7 @@ fun MainScreen(
             // Grabbing scope (i.e. box size) parameters
             val scope = this
             val topPadding = with(LocalDensity.current) {innerPadding.calculateTopPadding().toPx()}
-            EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqLevels, updateEqLevel, thumbPositions)
+            EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqRange[0], eqRange[1], eqLevels, updateEqLevel, thumbPositions)
             // Drawing the curve on top of the EQ sliders
             EQCurve(MaterialTheme.colorScheme.primary, topPadding, thumbPositions)
         }
@@ -118,6 +119,8 @@ private fun EQSliders(
     boxWidth: Dp,
     isPortrait: Boolean,
     frequencyBands: List<String>,
+    eqMin: Float,
+    eqMax: Float,
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit,
     thumbPositions: MutableList<Offset>
@@ -166,8 +169,8 @@ private fun EQSliders(
                     updateThumbPosition = {coordinates -> thumbPositions[sliderNo] = coordinates},
                     trackColor = MaterialTheme.colorScheme.tertiary,
                     thumbColor = MaterialTheme.colorScheme.primary,
-                    // Slider can go from -18dB to +18dB
-                    valueRange = -18f..18f
+                    // Adapting slider range to be whatever the system supports
+                    valueRange = eqMin..eqMax
                 )
                 // Adding spacing
                 Spacer(modifier=Modifier.height(spacerHeight))

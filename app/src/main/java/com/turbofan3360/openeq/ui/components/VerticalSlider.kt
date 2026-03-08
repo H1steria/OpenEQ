@@ -49,6 +49,7 @@ fun VerticalSlider(
                 orientation = Orientation.Vertical,
                 // What to do when dragged
                 state = rememberDraggableState { dragChange ->
+                    // TODO: Make the sensitivity change value here adaptive
                     onValueChange((value-0.04f*dragChange).coerceIn(valueRange.start, valueRange.endInclusive))
                 }
             )

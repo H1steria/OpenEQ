@@ -28,7 +28,7 @@ fun setEqualizer(
     ) {
     // Sets levels of an equalizer instance to the given values
     for (i in 0..<levels.size) {
-        eq.setBandLevel((i*1000).toShort(), round(levels[i] * 100).toInt().toShort())
+        eq.setBandLevel(i.toShort(), round(levels[i] * 100).toInt().toShort())
     }
 }
 
@@ -44,6 +44,15 @@ fun getEqBands(): List<Float> {
     delEqualizer(eqObj)
 
     return frequencies.toList()
+}
+
+fun getEqRange(): List<Float> {
+    // Returns a [min, max] float value range that the EQ lets you select on this device
+    val eqObj = addEqualizer(0)
+    val eqRange = eqObj.getBandLevelRange()
+    delEqualizer(eqObj)
+
+    return listOf(eqRange[0]/100f, eqRange[1]/100f)
 }
 
 fun eqFrequenciesToLabels(

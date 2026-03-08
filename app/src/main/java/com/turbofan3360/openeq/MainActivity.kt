@@ -25,6 +25,7 @@ import com.turbofan3360.openeq.ui.theme.OpenEQTheme
 import com.turbofan3360.openeq.audioprocessing.getEqBands
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 import com.turbofan3360.openeq.audioprocessing.EQMediaListenerService
+import com.turbofan3360.openeq.audioprocessing.getEqRange
 
 class MainActivityViewModel: ViewModel() {
     // State - whether EQ service is enabled or not
@@ -33,6 +34,8 @@ class MainActivityViewModel: ViewModel() {
     val eqFrequencyBands = getEqBands()
     // String labels for EQ frequency bands
     val eqFrequencyBandsStr = eqFrequenciesToLabels(eqFrequencyBands)
+    // Supported range of EQ bands (in dB)
+    val eqRange = getEqRange()
     // State of the sliders (and so EQ levels)
     var eqLevels = mutableStateListOf(*MutableList(eqFrequencyBands.size) {0f}.toTypedArray())
 }
@@ -80,6 +83,7 @@ class MainActivity : ComponentActivity() {
                         eqService?.updateEqLevels(myViewModel.eqLevels)
                                     },
                     frequencyBands = myViewModel.eqFrequencyBandsStr,
+                    eqRange = myViewModel.eqRange
                 )
             }
         }
@@ -87,7 +91,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         // Unbinds from the foreground service if it's bound
-        unbindService(connection)
+        if (eqService != null) {
+            unbindService(connection)
+        }
         // Calls the onDestroy() of the parent class to properly destroy the activity
         super.onDestroy()
     }
