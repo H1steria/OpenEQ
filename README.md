@@ -1,5 +1,7 @@
 # OpenEQ #
 
+![OpenEQ Logo Banner](img/openeq_logo_banner.png)
+
 This is the repository for OpenEQ, an open-source, privacy respecting, and simple Android audio equalizer app. 
 
 ### Features: ###
