@@ -38,7 +38,7 @@ Some media players require extra configuration to ensure they interface properly
 ### Known limitations/issues: ###
 
  - Only detects media streams starting after activating the equalizer
- - Doesn't work with all apps - some apps don't notify the system when starting a media stream, and so the equalizer can't attach to them (see [Media Player Configuration](https://github.com/Turbofan3360/OpenEQ#media-player-configuration))
+ - Doesn't work with all apps - some apps don't notify the system when starting a media stream, and so the equalizer can't attach to them (see [Media Player Configuration](#media-player-configuration))
  - Requires Android 8.0 or higher
 
 ### Contributing: ###
