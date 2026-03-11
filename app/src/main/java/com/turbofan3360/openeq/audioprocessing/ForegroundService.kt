@@ -1,6 +1,5 @@
 package com.turbofan3360.openeq.audioprocessing
 
-import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -9,16 +8,13 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.content.pm.PackageManager
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.Equalizer
-import android.os.Build
 import android.os.Binder
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.checkSelfPermission
 
 import com.turbofan3360.openeq.MainActivity
 import com.turbofan3360.openeq.R
