@@ -33,8 +33,6 @@ class DatabaseHandler {
             EqPresetDatabase::class.java, "preset-database"
         ).build()
 
-        // TODO: Create "latest_eq_levels" entry if none already exists
-
         dbInitialized = true
     }
 

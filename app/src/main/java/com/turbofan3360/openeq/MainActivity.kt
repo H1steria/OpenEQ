@@ -20,6 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
@@ -27,6 +30,7 @@ import com.turbofan3360.openeq.audioprocessing.getEqBands
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 import com.turbofan3360.openeq.audioprocessing.EQMediaListenerService
 import com.turbofan3360.openeq.audioprocessing.getEqRange
+import com.turbofan3360.openeq.appdata.DatabaseHandler
 
 class MainActivityViewModel: ViewModel() {
     // State - whether EQ service is enabled or not
@@ -42,9 +46,10 @@ class MainActivityViewModel: ViewModel() {
 }
 
 class MainActivity : ComponentActivity() {
-    private val foregroundServiceIntent: Intent by lazy{Intent(this, EQMediaListenerService::class.java)}
     val myViewModel: MainActivityViewModel by viewModels()
 
+    private val foregroundServiceIntent: Intent by lazy{Intent(this, EQMediaListenerService::class.java)}
+    private val appDb by lazy{DatabaseHandler()}
     // Class to bind to the foreground service
     private var eqService: EQMediaListenerService? = null
     private val connection = object : ServiceConnection {
@@ -64,6 +69,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Starts the app database to access stored preset info
+        // WARNING: DO NOT START THE DATABASE AGAIN ANYWHERE ELSE IN THE APP
+        appDb.buildDatabase(this)
+        // Launching coroutine to get the EQ levels from previous app close and save them in the view model
+        lifecycleScope.launch {
+            val values = appDb.getPreset("latest_eq_levels")
+            // Checking if a "latest_eq_levels" preset already exists, if so setting my EQ levels to it
+            if (values != null) {
+                myViewModel.eqLevels.clear()
+                myViewModel.eqLevels.addAll(values)
+            }
+            // If not - need to create one
+            else {
+                appDb.addPreset("latest_eq_levels", myViewModel.eqLevels.toList())
+            }
+        }
 
         // Handles starting the app UI
         setContent {
@@ -99,6 +121,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        // Saves the latest EQ levels to the database and waits for the operation to complete
+        runBlocking {
+            appDb.updatePreset("latest_eq_levels", myViewModel.eqLevels)
+        }
+
         // Unbinds from the foreground service if it's bound
         if (eqService != null) {
             unbindService(connection)
