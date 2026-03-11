@@ -68,7 +68,7 @@ class DatabaseHandler {
 // -----------------------------------------------
 
 // Defining the actual database
-@Database(entities = [Preset::class], version = 1)
+@Database(entities = [Preset::class], version = 1, exportSchema = true)
 abstract class EqPresetDatabase : RoomDatabase() {
     abstract fun userDao(): PresetDao
 }

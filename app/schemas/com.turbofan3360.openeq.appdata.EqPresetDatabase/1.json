@@ -1,0 +1,37 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "5ab0d828209e621d4dca915e44cac2e0",
+    "entities": [
+      {
+        "tableName": "Preset",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`presetId` TEXT NOT NULL, `eq_levels` TEXT NOT NULL, PRIMARY KEY(`presetId`))",
+        "fields": [
+          {
+            "fieldPath": "presetId",
+            "columnName": "presetId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "eqLevels",
+            "columnName": "eq_levels",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "presetId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ab0d828209e621d4dca915e44cac2e0')"
+    ]
+  }
+}
