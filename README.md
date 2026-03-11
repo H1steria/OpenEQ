@@ -31,7 +31,6 @@ Some media players require extra configuration to ensure they interface properly
 
 ### Features in development: ###
 
- - Persistent EQ settings over app creation/destruction
  - Presets for different music styles
  - User-defined presets
 
