@@ -42,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.times
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Color
@@ -56,7 +57,6 @@ import com.turbofan3360.openeq.ui.components.VerticalSlider
 import com.turbofan3360.openeq.ui.utils.roundOneDP
 import com.turbofan3360.openeq.ui.utils.generateSplineControlPoint
 
-// CenterAlignedTopAppBar is an experimental API so need to allow it
 @Composable
 fun MainScreen(
     eqEnabled: Boolean,
@@ -104,10 +104,13 @@ fun MainScreen(
         ) {
             // Grabbing scope (i.e. box size) parameters
             val scope = this
+
             val topPadding = with(LocalDensity.current) {innerPadding.calculateTopPadding().toPx()}
+            val sidePadding = with(LocalDensity.current) {innerPadding.calculateLeftPadding(LayoutDirection.Ltr).toPx()}
+
             EQSliders(scope.maxHeight, scope.maxWidth, isPortrait, frequencyBands, eqRange[0], eqRange[1], eqLevels, updateEqLevel, thumbPositions)
             // Drawing the curve on top of the EQ sliders
-            EQCurve(MaterialTheme.colorScheme.primary, topPadding, thumbPositions)
+            EQCurve(MaterialTheme.colorScheme.primary, thumbPositions, topPadding, sidePadding)
         }
     }
 }
@@ -190,16 +193,19 @@ private fun EQSliders(
 @Composable
 private fun EQCurve(
     pathColor: Color,
+    thumbPositions: List<Offset>,
     topPadding: Float,
-    thumbPositions: List<Offset>
+    sidePadding: Float,
     ) {
     // Generates the curve between each of the EQ points
     Canvas(
         modifier = Modifier.fillMaxSize()
     ) {
         val path = Path()
-        // Moving to the starting point
-        path.moveTo(thumbPositions[0].x, thumbPositions[0].y-topPadding)
+
+        // Moving to the starting point (need to adjust for padding from other components)
+            path.moveTo(thumbPositions[0].x - sidePadding, thumbPositions[0].y - topPadding)
+
         // Iterating through terms to add curves between thumb points on sliders to the path
         for (i in 0..(thumbPositions.size-2)) {
             // Finding curve control points
@@ -215,13 +221,13 @@ private fun EQCurve(
             // Adding another curve to the spline
             path.cubicTo(
                 // Control point 1
-                x1 = point1.x,
+                x1 = point1.x-sidePadding,
                 y1 = point1.y-topPadding,
                 // Control point 2
-                x2 = point2.x,
+                x2 = point2.x-sidePadding,
                 y2 = point2.y-topPadding,
                 // Destination point
-                x3 = thumbPositions[i+1].x,
+                x3 = thumbPositions[i+1].x-sidePadding,
                 y3 = thumbPositions[i+1].y-topPadding
             )
         }
@@ -235,6 +241,7 @@ private fun EQCurve(
     }
 }
 
+// CenterAlignedTopAppBar is an experimental API so need to allow it
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppTitle() {
