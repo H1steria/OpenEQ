@@ -296,7 +296,7 @@ private fun AppTitle() {
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     },
-                    onClick = { uriHandler.openUri("https://github.com/Turbofan3360/OpenEQ") }
+                    onClick = { uriHandler.openUri("https://github.com/Turbofan3360/OpenEQ?tab=readme-ov-file#openeq") }
                 )
                 // TODO: Complete menu
             }
