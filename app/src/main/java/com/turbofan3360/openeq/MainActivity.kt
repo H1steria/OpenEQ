@@ -171,7 +171,7 @@ class MainActivity : ComponentActivity() {
 
     private fun newPreset(id: String) {
         // Checking for no user input
-        if (id == "" || (myViewModel.presetIdStrings.contains(id))) {
+        if (id.isBlank() || (myViewModel.presetIdStrings.contains(id))) {
             return
         }
 
