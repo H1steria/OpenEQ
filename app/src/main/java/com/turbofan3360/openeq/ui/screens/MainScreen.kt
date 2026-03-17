@@ -354,7 +354,7 @@ private fun AppTitle(
                     leadingIcon = {
                         Icon(
                             imageVector=Icons.Rounded.AddCircleOutline,
-                            contentDescription = stringResource(R.string.menu_saveas_icon_description),
+                            contentDescription = stringResource(R.string.menu_save_as_icon_description),
                             tint = MaterialTheme.colorScheme.secondary
                         )
                     }
@@ -438,8 +438,22 @@ private fun AppTitle(
     PresetUpdateDialog(
         updatePresetDialogOpen,
         presetIds,
-        onDismiss = { updatePresetDialogOpen = false },
-        onPresetUpdate
+        onPresetUpdate,
+        onDismiss = { updatePresetDialogOpen = false }
+    )
+
+    PresetLoadDialog(
+        loadPresetDialogOpen,
+        presetIds,
+        onPresetSelect,
+        onDismiss = { loadPresetDialogOpen = false }
+    )
+
+    PresetDeleteDialog(
+        deletePresetDialogOpen,
+        presetIds,
+        onPresetDelete,
+        onDismiss = { deletePresetDialogOpen = false }
     )
 }
 
@@ -447,8 +461,8 @@ private fun AppTitle(
 private fun PresetUpdateDialog(
     showDialog: Boolean,
     presetIds: List<String>,
-    onDismiss: () -> Unit,
-    onPresetUpdate: (String) -> Unit
+    onPresetUpdate: (String) -> Unit,
+    onDismiss: () -> Unit
     ){
     var selectedPreset by remember{ mutableStateOf("") }
 
@@ -462,10 +476,10 @@ private fun PresetUpdateDialog(
 
             icon = { Icon(
                 imageVector=Icons.Rounded.Edit,
-                contentDescription=stringResource(R.string.edit_preset_dialog_description)
+                contentDescription=stringResource(R.string.update_preset_dialog_icon_description)
             ) },
             title = { Text(
-                stringResource(R.string.preset_edit_dialog_title),
+                stringResource(R.string.update_preset_dialog_title),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.secondary,
             ) },
@@ -481,7 +495,7 @@ private fun PresetUpdateDialog(
                 }
             ) {
                 Text(
-                    stringResource(R.string.preset_id_input_confirm),
+                    stringResource(R.string.dialog_confirm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -500,7 +514,7 @@ private fun PresetUpdateDialog(
             } },
             text = {
                 Text(
-                    text = stringResource(R.string.edit_preset_dialog_description),
+                    text = stringResource(R.string.update_preset_dialog_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -531,10 +545,10 @@ private fun PresetSaveDialog(
 
             icon = { Icon(
                 imageVector=Icons.Rounded.AddCircleOutline,
-                contentDescription=stringResource(R.string.preset_id_input_dialog_description)
+                contentDescription=stringResource(R.string.save_preset_dialog_icon_description)
             ) },
             title = { Text(
-                    stringResource(R.string.preset_id_input_dialog_title),
+                    stringResource(R.string.save_preset_dialog_title),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
             ) },
@@ -553,7 +567,7 @@ private fun PresetSaveDialog(
                 }
                 ) {
                 Text(
-                    stringResource(R.string.preset_id_input_confirm),
+                    stringResource(R.string.dialog_confirm),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.secondary,
                 )
@@ -574,7 +588,7 @@ private fun PresetSaveDialog(
             // Actual input box for the user to enter their preset name
             text = { OutlinedTextField(
                 state = presetInputState,
-                label = { Text(stringResource(R.string.preset_id_input_field_label)) },
+                label = { Text(stringResource(R.string.save_preset_dialog_input_box_label)) },
                 textStyle = MaterialTheme.typography.bodySmall,
 
                 colors = TextFieldDefaults.colors(
@@ -586,10 +600,148 @@ private fun PresetSaveDialog(
 }
 
 @Composable
-private fun PresetLoadDialog() {}
+private fun PresetLoadDialog(
+    showDialog: Boolean,
+    presetIds: List<String>,
+    onPresetLoad: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedPreset by remember{ mutableStateOf("") }
+
+    // A pop-up dialog to request the user select a preset ID to load from the database
+    if (showDialog) {
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            iconContentColor = MaterialTheme.colorScheme.secondary,
+            titleContentColor = MaterialTheme.colorScheme.tertiary,
+            textContentColor = MaterialTheme.colorScheme.tertiary,
+
+            icon = { Icon(
+                imageVector=Icons.Rounded.Cached,
+                contentDescription=stringResource(R.string.load_preset_dialog_icon_description)
+            ) },
+            title = { Text(
+                stringResource(R.string.load_preset_dialog_title),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+            ) },
+            onDismissRequest =  {
+                selectedPreset = ""
+                onDismiss()
+            },
+            confirmButton = { TextButton(
+                onClick = {
+                    // If preset ID entered + user confirms - load preset values from database, then dismiss the dialog
+                    onPresetLoad(selectedPreset)
+                    selectedPreset = ""
+                    onDismiss()
+                }
+            ) {
+                Text(
+                    stringResource(R.string.dialog_confirm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            } },
+            dismissButton = { TextButton(
+                onClick = {
+                    selectedPreset = ""
+                    onDismiss()
+                }
+            ) {
+                Text(
+                    stringResource(R.string.dialog_dismiss),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            } },
+            // Dropdown for user to select preset name
+            text = {
+                Text(
+                    text = stringResource(R.string.load_preset_dialog_text),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                PresetIdsDropDown(
+                    presetIds,
+                    onSelect = { id -> selectedPreset = id }
+                )
+            }
+        )
+    }
+}
 
 @Composable
-private fun PresetDeleteDialog() {}
+private fun PresetDeleteDialog(
+    showDialog: Boolean,
+    presetIds: List<String>,
+    onPresetDelete: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedPreset by remember{ mutableStateOf("") }
+
+    // A pop-up dialog to request the user select a preset ID to load from the database
+    if (showDialog) {
+        AlertDialog(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            iconContentColor = MaterialTheme.colorScheme.secondary,
+            titleContentColor = MaterialTheme.colorScheme.tertiary,
+            textContentColor = MaterialTheme.colorScheme.tertiary,
+
+            icon = { Icon(
+                imageVector=Icons.Rounded.Delete,
+                contentDescription=stringResource(R.string.delete_preset_dialog_icon_description)
+            ) },
+            title = { Text(
+                stringResource(R.string.delete_preset_dialog_title),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary,
+            ) },
+            onDismissRequest =  {
+                selectedPreset = ""
+                onDismiss()
+            },
+            confirmButton = { TextButton(
+                onClick = {
+                    // If preset ID entered + user confirms - load preset values from database, then dismiss the dialog
+                    onPresetDelete(selectedPreset)
+                    selectedPreset = ""
+                    onDismiss()
+                }
+            ) {
+                Text(
+                    stringResource(R.string.dialog_confirm),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            } },
+            dismissButton = { TextButton(
+                onClick = {
+                    selectedPreset = ""
+                    onDismiss()
+                }
+            ) {
+                Text(
+                    stringResource(R.string.dialog_dismiss),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary,
+                )
+            } },
+            // Dropdown for user to select preset name
+            text = {
+                Text(
+                    text = stringResource(R.string.delete_preset_dialog_text),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                PresetIdsDropDown(
+                    presetIds,
+                    onSelect = { id -> selectedPreset = id }
+                )
+            }
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -608,7 +760,7 @@ private fun PresetIdsDropDown(
         TextField(
             readOnly = true,
             state = textFieldState,
-            label = { stringResource(R.string.preset_selector_field_label) },
+            label = { stringResource(R.string.preset_dropdown_field_label) },
             textStyle = MaterialTheme.typography.bodySmall,
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
 
