@@ -196,6 +196,11 @@ class MainActivity : ComponentActivity() {
             appDb.deletePreset(id)
             // Once added to the database, can remove the preset ID string from the list
             myViewModel.presetIdStrings.remove(id)
+
+            // Clearing all EQ levels
+            for (i in 0..<myViewModel.eqLevels.size) {
+                myViewModel.eqLevels[i] = 0f
+            }
         }
     }
 
