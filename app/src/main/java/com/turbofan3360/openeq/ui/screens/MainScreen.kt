@@ -484,7 +484,7 @@ private fun PresetSaveDialog(
             ) },
             title = { Text(
                 stringResource(R.string.save_preset_dialog_title),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.secondary,
             ) },
             onDismissRequest =  {
@@ -525,6 +525,7 @@ private fun PresetSaveDialog(
                 Column {
                     Text(
                         text = stringResource(R.string.save_preset_dialog_text),
+                        modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
@@ -538,7 +539,9 @@ private fun PresetSaveDialog(
                         textStyle = MaterialTheme.typography.bodySmall,
 
                         colors = TextFieldDefaults.colors(
-                            unfocusedIndicatorColor = MaterialTheme.colorScheme.primary
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.primary,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                            focusedContainerColor = MaterialTheme.colorScheme.primaryContainer
                         )
                     )
                 }
@@ -570,7 +573,7 @@ private fun PresetUpdateDialog(
             ) },
             title = { Text(
                 stringResource(R.string.update_preset_dialog_title),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.secondary,
             ) },
             onDismissRequest =  {
@@ -604,6 +607,7 @@ private fun PresetUpdateDialog(
                     Text(
                         text = stringResource(R.string.update_preset_dialog_text),
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -643,7 +647,7 @@ private fun PresetLoadDialog(
             ) },
             title = { Text(
                 stringResource(R.string.load_preset_dialog_title),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.secondary,
             ) },
             onDismissRequest =  {
@@ -679,6 +683,7 @@ private fun PresetLoadDialog(
                     Text(
                         text = stringResource(R.string.load_preset_dialog_text),
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -718,7 +723,7 @@ private fun PresetDeleteDialog(
             ) },
             title = { Text(
                 stringResource(R.string.delete_preset_dialog_title),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.secondary,
             ) },
             onDismissRequest =  {
@@ -754,6 +759,7 @@ private fun PresetDeleteDialog(
                     Text(
                         text = stringResource(R.string.delete_preset_dialog_text),
                         textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth(),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.secondary
                     )
@@ -795,7 +801,7 @@ private fun PresetIdsDropDown(
                 focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                 focusedTextColor = MaterialTheme.colorScheme.secondary,
-                unfocusedTextColor = MaterialTheme.colorScheme.secondary,
+                unfocusedTextColor = MaterialTheme.colorScheme.tertiary,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedLabelColor = MaterialTheme.colorScheme.primary,
                 unfocusedIndicatorColor = MaterialTheme.colorScheme.primary
