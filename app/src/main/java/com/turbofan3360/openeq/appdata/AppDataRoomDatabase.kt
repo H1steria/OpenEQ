@@ -63,6 +63,9 @@ class DatabaseHandler {
         return presetIds.toList()
     }
 
+    suspend fun deletePreset(presetId: String) {
+        db?.userDao()?.deletePreset(presetId)
+    }
 }
 
 // -----------------------------------------------
@@ -99,4 +102,8 @@ interface PresetDao {
     // Lets you update a preset in the database
     @Update
     suspend fun updatePreset(preset: Preset)
+
+    // Lets you remove preset from the database
+    @Query("DELETE FROM Preset WHERE presetId = :wantedPresetId")
+    suspend fun deletePreset(wantedPresetId: String)
 }

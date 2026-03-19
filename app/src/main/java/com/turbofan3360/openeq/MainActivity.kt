@@ -43,6 +43,8 @@ class MainActivityViewModel: ViewModel() {
     val eqRange = getEqRange()
     // State of the sliders (and so EQ levels)
     var eqLevels = mutableStateListOf(*MutableList(eqFrequencyBands.size) {0f}.toTypedArray())
+    // List of preset ID strings
+    var presetIdStrings = mutableStateListOf<String>()
 }
 
 class MainActivity : ComponentActivity() {
@@ -73,6 +75,16 @@ class MainActivity : ComponentActivity() {
         // Calls the function to initialize the database with stored app data
         appDataInit()
 
+        // Getting preset IDs from the database
+        lifecycleScope.launch {
+            val strings = appDb.getAllPresetIds()
+
+            if (strings != null) {
+                myViewModel.presetIdStrings.clear()
+                myViewModel.presetIdStrings.addAll(strings)
+            }
+        }
+
         // Re-binds to the foreground service if it was left running upon last app destruction
         findMediaListenService()
 
@@ -95,7 +107,7 @@ class MainActivity : ComponentActivity() {
                             stopMediaListenService()
                             myViewModel.eqEnabled = false
                         }
-                               },
+                    },
                     myViewModel.eqLevels,
                     updateEqLevel = {index:Int, value:Float ->
                         myViewModel.eqLevels[index] = value
@@ -103,7 +115,12 @@ class MainActivity : ComponentActivity() {
                         eqService?.updateEqLevels(myViewModel.eqLevels)
                                     },
                     frequencyBands = myViewModel.eqFrequencyBandsStr,
-                    eqRange = myViewModel.eqRange
+                    eqRange = myViewModel.eqRange,
+                    presetIds = myViewModel.presetIdStrings,
+                    onPresetSelect = {presetId -> loadPreset(presetId) },
+                    onPresetSave = {presetId -> newPreset(presetId)},
+                    onPresetDelete = {presetId -> deletePreset(presetId)},
+                    onPresetUpdate = {presetId -> updatePreset(presetId)}
                 )
             }
         }
@@ -142,6 +159,65 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun loadPreset(id: String) {
+        // Launches a coroutine to load the user-selected preset into the EQ levels state
+        lifecycleScope.launch {
+            val presetVals = appDb.getPreset(id)
+
+            if (presetVals != null) {
+                myViewModel.eqLevels.clear()
+                myViewModel.eqLevels.addAll(presetVals)
+            }
+        }
+    }
+
+    private fun newPreset(id: String) {
+        // Checking for no user input
+        if (id.isBlank() || myViewModel.presetIdStrings.contains(id)) {
+            return
+        }
+
+        // Launches a coroutine to save the current EQ levels as a new preset in the database
+        lifecycleScope.launch {
+            appDb.addPreset(id, myViewModel.eqLevels)
+            // Once preset added to database, adds the new preset ID to the list of preset ID string
+            myViewModel.presetIdStrings += id
+        }
+    }
+
+    private fun deletePreset(id: String) {
+        // Checking string ID is valid
+        if (id.isBlank() || !myViewModel.presetIdStrings.contains(id)) {
+            return
+        }
+
+        // Launches coroutine to remove preset from database
+        lifecycleScope.launch {
+            appDb.deletePreset(id)
+            // Once added to the database, can remove the preset ID string from the list
+            myViewModel.presetIdStrings.remove(id)
+
+            // Clearing all EQ levels
+            for (i in 0..<myViewModel.eqLevels.size) {
+                myViewModel.eqLevels[i] = 0f
+            }
+        }
+    }
+
+    private fun updatePreset(id: String) {
+        // Checking string ID is valid
+        if (id.isBlank() || !myViewModel.presetIdStrings.contains(id)) {
+            return
+        }
+
+        // Launches coroutine to update preset in database to current EQ levels
+        lifecycleScope.launch {
+            appDb.updatePreset(id, myViewModel.eqLevels)
+        }
+    }
+
+    // -----------------------------------------------
+
     private fun findMediaListenService() {
         // Checks to see if the foreground service is running; if so it re-binds to it
         if (EQMediaListenerService.isRunning) {
@@ -173,6 +249,8 @@ class MainActivity : ComponentActivity() {
         // Stops the foreground service that listens for media streams starting
         stopService(foregroundServiceIntent)
     }
+
+    // -----------------------------------------------
 
     private fun checkNotificationPermission(): Boolean {
         // Function to check whether notification permission is given, and request it if not

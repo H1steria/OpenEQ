@@ -1,8 +1,46 @@
 <resources>
     <string name="app_name">OpenEQ</string>
+
+    <string name="menu_icon_description">Options Menu</string>
     <string name="menu_info">About</string>
+    <string name="menu_info_icon_description">Information about the app</string>
 
     <string name="notification_info">OpenEQ is running a foreground service to detect media streams</string>
     <string name="notification_channel_name">Foreground Service</string>
     <string name="notification_channel_info">Notifications for the OpenEQ foreground service to detect streaming media</string>
+
+    <string name="eq_toggle_button_description">Toggle Equalizer On or Off</string>
+    <string name="eq_reset_button_description">Set all EQ channels back to 0</string>
+
+    <string name="menu_save_new_preset">Save As Preset</string>
+    <string name="menu_save_as_icon_description">Save current EQ levels as a preset</string>
+    <string name="menu_load_preset">Load Preset</string>
+    <string name="menu_load_preset_icon_description">Select a preset to load from the database</string>
+    <string name="menu_update_preset">Update Preset</string>
+    <string name="menu_update_preset_icon_description">Update a preset in the database to the current EQ values</string>
+    <string name="menu_delete_preset">Delete Preset</string>
+    <string name="menu_delete_preset_icon_description">Delete a preset from the database</string>
+
+    <string name="preset_dropdown_field_label">Select Preset:</string>
+    <string name="preset_dropdown_field_default">Choose Preset…</string>
+
+    <string name="save_preset_dialog_icon_description">Save your new equalizer preset</string>
+    <string name="save_preset_dialog_title">Save New Preset:</string>
+    <string name="save_preset_dialog_text">Input new preset name</string>
+    <string name="save_preset_dialog_input_box_label">Preset name:</string>
+
+    <string name="update_preset_dialog_icon_description">Update your equalizer preset</string>
+    <string name="update_preset_dialog_title">Edit Preset:</string>
+    <string name="update_preset_dialog_text">Update the selected preset to the current equalizer levels</string>
+
+    <string name="load_preset_dialog_icon_description">Load an equalizer preset</string>
+    <string name="load_preset_dialog_title">Load Preset:</string>
+    <string name="load_preset_dialog_text">Select an equalizer preset to be loaded</string>
+
+    <string name="delete_preset_dialog_icon_description">Delete a user-defined equalizer preset</string>
+    <string name="delete_preset_dialog_title">Delete Preset:</string>
+    <string name="delete_preset_dialog_text">Select an equalizer preset to be deleted (cannot be undone)</string>
+
+    <string name="dialog_confirm">Confirm</string>
+    <string name="dialog_dismiss">Cancel</string>
 </resources>
