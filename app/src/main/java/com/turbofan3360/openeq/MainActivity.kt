@@ -23,6 +23,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
@@ -31,6 +32,7 @@ import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 import com.turbofan3360.openeq.audioprocessing.EQMediaListenerService
 import com.turbofan3360.openeq.audioprocessing.getEqRange
 import com.turbofan3360.openeq.appdata.DatabaseHandler
+import kotlinx.coroutines.Dispatchers
 
 class MainActivityViewModel: ViewModel() {
     // State - whether EQ service is enabled or not
@@ -167,6 +169,9 @@ class MainActivity : ComponentActivity() {
             if (presetVals != null) {
                 myViewModel.eqLevels.clear()
                 myViewModel.eqLevels.addAll(presetVals)
+
+                // Sending updated EQ levels to the foreground service from the main thread
+                eqService?.updateEqLevels(myViewModel.eqLevels)
             }
         }
     }
