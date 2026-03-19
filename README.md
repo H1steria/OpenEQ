@@ -46,4 +46,4 @@ I'm more than happy to have people contribute to this project! Please feel free 
 
 ### License: ###
 
-This project is licensed under the [GNU General Public License Version 3](https://github.com/Turbofan3360/OpenEQ/blob/master/LICENSE)
+This project is licensed under the [GNU General Public License Version 3](LICENSE)
