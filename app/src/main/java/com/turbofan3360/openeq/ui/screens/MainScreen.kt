@@ -497,7 +497,7 @@ private fun PresetDialogStructure(
     presetIds: List<String>,
     presetAction: (String) -> Unit,
     onDismiss: () -> Unit,
-    dropDown: Boolean,
+    isDropdown: Boolean,
 
     iconImageVector: ImageVector,
     iconDescription: String,
@@ -532,7 +532,12 @@ private fun PresetDialogStructure(
             },
             confirmButton = { TextButton(
                 onClick = {
-                    presetAction(selectedPreset)
+                    if (isDropdown) {
+                        presetAction(selectedPreset)
+                    }
+                    else {
+                        presetAction(presetInputState.text.toString())
+                    }
                     onDismiss()
                     // Resetting text field state
                     presetInputState.setTextAndPlaceCursorAtEnd("")
@@ -559,6 +564,7 @@ private fun PresetDialogStructure(
             } },
             text = {
                 Column {
+                    // Main body text of the dialog if extra detail required
                     Text(
                         text = bodyText,
                         textAlign = TextAlign.Center,
@@ -569,7 +575,8 @@ private fun PresetDialogStructure(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    if (dropDown) {
+                    // Adapts dialog contents depending on what's required - either a dropdown menu or a text field
+                    if (isDropdown) {
                         PresetIdsDropDown(
                             presetIds,
                             onSelect = { id -> selectedPreset = id }
@@ -584,7 +591,8 @@ private fun PresetDialogStructure(
                             colors = TextFieldDefaults.colors(
                                 unfocusedIndicatorColor = MaterialTheme.colorScheme.primary,
                                 unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                unfocusedTextColor = MaterialTheme.colorScheme.tertiary
                             )
                         )
                     }
