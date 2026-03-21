@@ -4,6 +4,8 @@
 
 This is the repository for OpenEQ, an open-source, privacy respecting, and simple Android audio equalizer app. 
 
+<img src="img/homescreen_img.jpeg" alt="OpenEQ Homescreen Screenshot"> <img src="img/menu_img.jpeg" alt="OpenEQ Menu Screenshot"> <img src="img/save_preset_img.jpeg" alt="OpennEQ Save Preset Screenshot">
+
 ### Features: ###
 
  - An equalizer that adapts to what the audio hardware on your phone supports
