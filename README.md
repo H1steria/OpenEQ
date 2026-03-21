@@ -30,7 +30,7 @@ Some media players require extra configuration to ensure they interface properly
 
 **BlackPlayer:** Hamburger menu → Audio → Equalizer → "Default Equalizer"
 
-The "Attach To Global Mix" option is not available on all devices (it's technically a deprecated Android function, but still works on many devices and can be useful). Enabling this is required for the equalizer to function with some apps such as VLC, but this is devicce-specific.
+The "Attach To Global Mix" option is not available on all devices (it's technically a deprecated Android function, but still works on many devices and can be useful). Enabling this is required for the equalizer to function with some apps such as VLC, but this is device-specific.
 
 ### Features in development: ###
 
