@@ -20,6 +20,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.Checkbox
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.SettingsBackupRestore
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Cached
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
@@ -77,6 +79,8 @@ import com.turbofan3360.openeq.ui.utils.generateSplineControlPoint
 fun MainScreen(
     eqEnabled: Boolean,
     eqToggle: () -> Unit,
+    tryGlobal: Boolean,
+    setGlobal: (Boolean) -> Unit,
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit,
     frequencyBands: List<String>,
@@ -95,7 +99,7 @@ fun MainScreen(
 
     Scaffold(
         // Creating the "OpenEQ" app bar at the top of the main screen
-        topBar = {AppTitle(presetIds, onPresetSelect, onPresetSave, onPresetDelete, onPresetUpdate)},
+        topBar = {AppTitle(tryGlobal, setGlobal, presetIds, onPresetSelect, onPresetSave, onPresetDelete, onPresetUpdate)},
         // Creating the bottom app bar with the reset sliders button
         bottomBar = {
             BottomAppBar(
@@ -104,9 +108,7 @@ fun MainScreen(
             ) {
                 // Creating a row of items at the bottom of the screen
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp),
+                    modifier = Modifier.fillMaxWidth().padding(10.dp),
                     // Shifting everything to the right first
                     horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.Bottom
@@ -269,14 +271,14 @@ private fun EQCurve(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AppTitle(
+    tryGlobal: Boolean,
+    setGlobal: (Boolean) -> Unit,
     presetIds: List<String>,
     onPresetSelect: (String) -> Unit,
     onPresetSave: (String) -> Unit,
     onPresetDelete: (String) -> Unit,
     onPresetUpdate: (String) -> Unit
     ) {
-    val uriHandler = LocalUriHandler.current
-
     var menuOpen by remember { mutableStateOf(false) }
     var savePresetDialogOpen by remember { mutableStateOf(false) }
     var updatePresetDialogOpen by remember { mutableStateOf(false) }
@@ -290,6 +292,7 @@ private fun AppTitle(
             containerColor = MaterialTheme.colorScheme.background,
             titleContentColor = MaterialTheme.colorScheme.primary
         ),
+
         // App title text
         title = {
             Text(
@@ -297,6 +300,7 @@ private fun AppTitle(
                 style = MaterialTheme.typography.titleLarge
             )
         },
+
         // Menu handling
         actions = {
             // Creating menu button
@@ -314,28 +318,8 @@ private fun AppTitle(
                 onDismissRequest = {menuOpen = false},
                 modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)
             ) {
-                // Menu items
-                DropdownMenuItem(
-                    // Menu item text
-                    text = {
-                        Text(
-                            stringResource(R.string.menu_info),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary
-                        )
-                    },
-                    // Icon at start of menu item
-                    leadingIcon = {
-                        Icon(
-                            imageVector=Icons.Rounded.Info,
-                            contentDescription = stringResource(R.string.menu_info_icon_description),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    },
-                    onClick = { uriHandler.openUri("https://github.com/Turbofan3360/OpenEQ?tab=readme-ov-file#openeq") }
-                )
+                ConfigMenuItems(tryGlobal, setGlobal)
 
-                // --------------------------------------------------------------
                 // Placing a line between the other things and the preset controls
                 HorizontalDivider()
 
@@ -345,13 +329,7 @@ private fun AppTitle(
                         menuOpen = false
                         savePresetDialogOpen = true
                     },
-                    text = {
-                        Text(
-                            stringResource(R.string.menu_save_new_preset),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    },
+                    text = { SmallSecondaryText(stringResource(R.string.menu_save_new_preset)) },
                     // Icon at start of menu item
                     leadingIcon = {
                         Icon(
@@ -368,13 +346,7 @@ private fun AppTitle(
                         menuOpen = false
                         loadPresetDialogOpen = true
                     },
-                    text = {
-                        Text(
-                            stringResource(R.string.menu_load_preset),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    },
+                    text = { SmallSecondaryText(stringResource(R.string.menu_load_preset)) },
                     // Icon at start of menu item
                     leadingIcon = {
                         Icon(
@@ -391,13 +363,7 @@ private fun AppTitle(
                         menuOpen = false
                         updatePresetDialogOpen = true
                     },
-                    text = {
-                        Text(
-                            stringResource(R.string.menu_update_preset),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    },
+                    text = { SmallSecondaryText(stringResource(R.string.menu_update_preset)) },
                     // Icon at start of menu item
                     leadingIcon = {
                         Icon(
@@ -414,13 +380,7 @@ private fun AppTitle(
                         menuOpen = false
                         deletePresetDialogOpen = true
                     },
-                    text = {
-                        Text(
-                            stringResource(R.string.menu_delete_preset),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    },
+                    text = { SmallSecondaryText(stringResource(R.string.menu_delete_preset)) },
                     // Icon at start of menu item
                     leadingIcon = {
                         Icon(
@@ -492,6 +452,53 @@ private fun AppTitle(
 }
 
 @Composable
+private fun ConfigMenuItems(
+    tryGlobal: Boolean,
+    setGlobal: (Boolean) -> Unit
+    ) {
+    // Handles the menu items used to configure the equalizer
+
+    val uriHandler = LocalUriHandler.current
+
+    // About app item
+    DropdownMenuItem(
+        // Menu item text
+        text = { SmallSecondaryText(stringResource(R.string.menu_info)) },
+        // Icon at start of menu item
+        leadingIcon = {
+            Icon(
+                imageVector=Icons.Rounded.Info,
+                contentDescription = stringResource(R.string.menu_info_icon_description),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        },
+        onClick = { uriHandler.openUri("https://github.com/Turbofan3360/OpenEQ?tab=readme-ov-file#openeq") }
+    )
+
+    // Checkbox selector to try attaching the EQ to the global mix
+    DropdownMenuItem(
+        text = {
+            SmallSecondaryText(stringResource(R.string.menu_attach_global_mix))
+        },
+        leadingIcon = {
+            Icon(
+                imageVector=Icons.Rounded.Language,
+                contentDescription = stringResource(R.string.menu_attach_global_mix_icon_description),
+                tint=MaterialTheme.colorScheme.secondary
+            )
+        },
+        trailingIcon = {
+            Checkbox(
+                checked = tryGlobal,
+                onCheckedChange = { setGlobal(!tryGlobal) },
+                modifier = Modifier.padding(0.dp)
+            )
+        },
+        onClick = { setGlobal(!tryGlobal) }
+    )
+}
+
+@Composable
 private fun PresetDialogStructure(
     showDialog: Boolean,
     presetIds: List<String>,
@@ -542,26 +549,16 @@ private fun PresetDialogStructure(
                     // Resetting text field state
                     presetInputState.setTextAndPlaceCursorAtEnd("")
                 }
-            ) {
-                Text(
-                    stringResource(R.string.dialog_confirm),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            } },
+            ) { SmallSecondaryText(stringResource(R.string.dialog_confirm)) }
+            },
             dismissButton = { TextButton(
                 onClick = {
                     onDismiss()
                     // Resetting text field state
                     presetInputState.setTextAndPlaceCursorAtEnd("")
                 }
-            ) {
-                Text(
-                    stringResource(R.string.dialog_dismiss),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.secondary
-                )
-            } },
+            ) { SmallSecondaryText(stringResource(R.string.dialog_dismiss)) }
+            },
             text = {
                 Column {
                     // Main body text of the dialog if extra detail required
@@ -624,13 +621,10 @@ private fun PresetIdsDropDown(
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
 
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.primary,
                 unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                focusedTextColor = MaterialTheme.colorScheme.secondary,
-                unfocusedTextColor = MaterialTheme.colorScheme.tertiary,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.primary
+                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                unfocusedTextColor = MaterialTheme.colorScheme.tertiary
             )
         )
         ExposedDropdownMenu(
@@ -643,17 +637,20 @@ private fun PresetIdsDropDown(
                         onSelect(id)
                         dropdownOpen = false
                     },
-                    text = {
-                        Text(
-                            text = id,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.secondary,
-                        )
-                    }
+                    text = { SmallSecondaryText(id) }
                 )
             }
         }
     }
+}
+
+@Composable
+private fun SmallSecondaryText(inputText: String) {
+    Text(
+        text = inputText,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.secondary,
+    )
 }
 
 @Composable
