@@ -18,7 +18,7 @@ This is the repository for OpenEQ, an open-source, privacy respecting, and simpl
 
 Please go to the [releases page](https://github.com/Turbofan3360/OpenEQ/releases) to download the .apk which you can then install. I intend to get this app on F-Droid in the future, and potentially on the Google Play Store, but I want to complete some more development first.
 
-### Media Player Configuration: ###
+### Compatibility: ###
 
 Some media players require extra configuration to ensure they interface properly with the equalizer. The known ones are:
 
@@ -30,14 +30,16 @@ Some media players require extra configuration to ensure they interface properly
 
 **BlackPlayer:** Hamburger menu → Audio → Equalizer → "Default Equalizer"
 
+The "Attach To Global Mix" option is not available on all devices (it's technically a deprecated Android function, but still works on many devices and can be useful). Enabling this is required for the equalizer to function with some apps such as VLC, but this is devicce-specific.
+
 ### Features in development: ###
 
  - Presets for different music styles
 
 ### Known limitations/issues: ###
 
- - Only detects media streams starting after activating the equalizer
- - Doesn't work with all apps - some apps don't notify the system when starting a media stream, and so the equalizer can't attach to them (see [Media Player Configuration](#media-player-configuration))
+ - Only detects media streams starting after activating the equalizer (when "Attach To Global Mix" not enabled)
+ - Doesn't work with all apps - some apps don't notify the system when starting a media stream, and so the equalizer can't attach to them (see [Compatibility](#Compatibility))
  - Requires Android 8.0 or higher
 
 ### Contributing: ###
