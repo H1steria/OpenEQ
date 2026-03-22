@@ -1,0 +1,1 @@
+ An open-source, privacy respecting, and simple Android audio equalizer app
