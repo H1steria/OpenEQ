@@ -122,9 +122,9 @@ fun MainScreen(
         floatingActionButton = {PowerButton(eqEnabled, eqToggle)},
         // Centering the EQ on/off toggle button
         floatingActionButtonPosition = if (isPortrait) FabPosition.Center else FabPosition.End
-    ) {
+
         // Defining content: Draws a colored background that fills the page, draws the EQ Sliders on it, and then a curve between the EQ sliders
-        innerPadding ->
+        ) { innerPadding ->
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize().background(color=MaterialTheme.colorScheme.background).padding(paddingValues=innerPadding),
         ) {
@@ -152,7 +152,7 @@ private fun EQSliders(
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit,
     thumbPositions: MutableList<Offset>
-    ) {
+) {
     // Simple scaling of sliders and spacers to adapt to the screen size - changes scaling depending on screen orientation
     val sliderHeight = if (isPortrait) 0.625f*boxHeight else 0.8f*boxHeight
     val spacerHeight = (boxHeight-sliderHeight)/10
@@ -221,8 +221,8 @@ private fun EQCurve(
     pathColor: Color,
     thumbPositions: List<Offset>,
     topPadding: Float,
-    sidePadding: Float,
-    ) {
+    sidePadding: Float
+) {
     // Generates the curve between each of the EQ points
     Canvas(
         modifier = Modifier.fillMaxSize()
@@ -241,8 +241,10 @@ private fun EQCurve(
                 thumbPositions[i],
                 thumbPositions[i+1],
                 // Handling edge case with final point
-                if (i!=thumbPositions.size-2) thumbPositions[i+2] else Offset(x=thumbPositions[thumbPositions.size-1].x+20,
-                                                                                y=thumbPositions[thumbPositions.size-1].y)
+                if (i!=thumbPositions.size-2) thumbPositions[i+2] else Offset(
+                    x=thumbPositions[thumbPositions.size-1].x+20,
+                    y=thumbPositions[thumbPositions.size-1].y
+                )
             )
             // Adding another curve to the spline
             path.cubicTo(
@@ -278,7 +280,7 @@ private fun AppTitle(
     onPresetSave: (String) -> Unit,
     onPresetDelete: (String) -> Unit,
     onPresetUpdate: (String) -> Unit
-    ) {
+) {
     var menuOpen by remember { mutableStateOf(false) }
     var savePresetDialogOpen by remember { mutableStateOf(false) }
     var updatePresetDialogOpen by remember { mutableStateOf(false) }
@@ -455,7 +457,7 @@ private fun AppTitle(
 private fun ConfigMenuItems(
     tryGlobal: Boolean,
     setGlobal: (Boolean) -> Unit
-    ) {
+) {
     // Handles the menu items used to configure the equalizer
 
     val uriHandler = LocalUriHandler.current
@@ -604,7 +606,7 @@ private fun PresetDialogStructure(
 private fun PresetIdsDropDown(
     presetIds: List<String>,
     onSelect: (String) -> Unit
-    ) {
+) {
     var dropdownOpen by remember{ mutableStateOf(false) }
     val textFieldState = rememberTextFieldState(stringResource(R.string.preset_dropdown_field_default))
 
@@ -675,7 +677,7 @@ private fun PowerButton(eqEnabled: Boolean, eqToggle: () -> Unit) {
 private fun ResetButton(
     updateEqLevel: (Int, Float) -> Unit,
     numEqBands: Int
-    ) {
+) {
     // Handles the button that resets all the sliders to 0 dB
     IconButton(onClick = {for (i in 0..<numEqBands) updateEqLevel(i, 0.0f)}) {
         Icon(

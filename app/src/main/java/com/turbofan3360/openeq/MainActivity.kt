@@ -1,13 +1,13 @@
 package com.turbofan3360.openeq
 
-import android.Manifest
-import android.content.pm.PackageManager
-import android.content.Intent
-import android.content.ServiceConnection
 import android.content.ComponentName
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.ServiceConnection
 import android.content.SharedPreferences
-import android.os.Bundle
+import android.Manifest
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -21,19 +21,19 @@ import androidx.compose.runtime.setValue
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-import com.turbofan3360.openeq.ui.screens.MainScreen
-import com.turbofan3360.openeq.ui.theme.OpenEQTheme
-import com.turbofan3360.openeq.audioprocessing.getEqBands
+import com.turbofan3360.openeq.appdata.DatabaseHandler
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 import com.turbofan3360.openeq.audioprocessing.EQMediaListenerService
+import com.turbofan3360.openeq.audioprocessing.getEqBands
 import com.turbofan3360.openeq.audioprocessing.getEqRange
 import com.turbofan3360.openeq.audioprocessing.globalEqAllowed
-import com.turbofan3360.openeq.appdata.DatabaseHandler
+import com.turbofan3360.openeq.ui.screens.MainScreen
+import com.turbofan3360.openeq.ui.theme.OpenEQTheme
 
 class MainActivityViewModel: ViewModel() {
     // State - whether EQ service is enabled or not
@@ -133,7 +133,12 @@ class MainActivity : ComponentActivity() {
                         else {
                             // If device doesn't support global EQ (it's technically deprecated)
                             // Showing error message:
-                            Toast.makeText(this, getString(R.string.global_mix_error_toast_message), Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                this,
+                                getString(R.string.global_mix_error_toast_message),
+                                Toast.LENGTH_LONG
+                            )
+                                .show()
                             myViewModel.tryGlobalAudio = false
                         }
 
@@ -316,7 +321,10 @@ class MainActivity : ComponentActivity() {
         }
 
         // Checking whether notifications are enabled
-        val notificationPermission = ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+        val notificationPermission = ActivityCompat.checkSelfPermission(
+            this,
+            Manifest.permission.POST_NOTIFICATIONS
+        )
 
         // Requesting permission if not enabled
         if (notificationPermission == PackageManager.PERMISSION_DENIED) {

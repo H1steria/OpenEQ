@@ -1,14 +1,14 @@
 package com.turbofan3360.openeq.audioprocessing
 
-import android.media.audiofx.Equalizer
 import android.media.MediaPlayer
+import android.media.audiofx.Equalizer
 import kotlin.math.round
 
 // A series of utility functions to help the code manage equalizer instances
 
 fun addEqualizer(
     audioSession: Int
-    ): Equalizer {
+): Equalizer {
     // Adds an equalizer session to a given audio stream and returns the EQ object
     val eqObject = Equalizer(0, audioSession)
     eqObject.setEnabled(true)
@@ -18,7 +18,7 @@ fun addEqualizer(
 
 fun delEqualizer(
     eq: Equalizer
-    ) {
+) {
     // Tidies up and deletes an EQ instance
     eq.release()
 }
@@ -26,7 +26,7 @@ fun delEqualizer(
 fun setEqualizer(
     eq: Equalizer,
     levels: List<Float>
-    ) {
+) {
     // Sets levels of an equalizer instance to the given values
     for (i in 0..<levels.size) {
         eq.setBandLevel(i.toShort(), round(levels[i] * 100).toInt().toShort())
@@ -62,7 +62,7 @@ fun getEqRange(): List<Float> {
 
 fun eqFrequenciesToLabels(
     frequencyBands: List<Float>
-    ): List<String> {
+): List<String> {
     // Takes in the list of frequency bands (in Hz) and generates nice labels for them
     val labels = mutableListOf<String>()
     var baseStr: String

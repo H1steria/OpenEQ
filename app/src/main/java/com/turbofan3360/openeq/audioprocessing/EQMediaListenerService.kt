@@ -1,9 +1,5 @@
 package com.turbofan3360.openeq.audioprocessing
 
-
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -16,6 +12,9 @@ import android.media.audiofx.AudioEffect
 import android.media.audiofx.Equalizer
 import android.os.Binder
 import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 
 import com.turbofan3360.openeq.MainActivity
 import com.turbofan3360.openeq.R
@@ -35,9 +34,9 @@ class EQMediaListenerService: Service() {
     private var tryGlobalMix = false
     private var binder = LocalBinder()
 
-    //---------------------------------
+    // ---------------------------------
     // Handles binding to this service
-    //---------------------------------
+    // ---------------------------------
     inner class LocalBinder : Binder() {
         fun getService() = this@EQMediaListenerService
     }
@@ -46,7 +45,7 @@ class EQMediaListenerService: Service() {
         // Returns a binder object to interact with this service
         return binder
     }
-    //---------------------------------
+    // ---------------------------------
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Called when starting the service
@@ -156,7 +155,7 @@ class EQMediaListenerService: Service() {
     private fun createEqNotificationChannel(
         channelName: String,
         channelDescription: String,
-    ){
+    ) {
         // Checking if it already exists (if so, don't re-create it)
         val existingChannel = notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID)
 

@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.androidx.room)
     id("com.google.devtools.ksp")
+    id("io.gitlab.arturbosch.detekt")
 }
 
 android {
@@ -50,6 +51,20 @@ room {
     schemaDirectory("$projectDir/schemas")
 }
 
+detekt {
+    toolVersion = "1.23.8"
+    buildUponDefaultConfig = true
+    allRules = false
+
+    config.setFrom(files("$rootDir/config/detekt.yml"))
+    baseline = file("$rootDir/config/baseline.xml")
+
+    parallel = true
+    autoCorrect = false
+
+    ignoreFailures = true
+}
+
 dependencies {
     implementation(libs.gson)
     implementation(libs.androidx.room.runtime)
@@ -72,4 +87,6 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    debugImplementation(libs.leakcanary.android)
+    detektPlugins(libs.detekt.formatting)
 }
