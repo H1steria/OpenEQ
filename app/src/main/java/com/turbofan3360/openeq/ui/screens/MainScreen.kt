@@ -49,10 +49,10 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -98,8 +98,7 @@ fun MainScreen(
     onPresetUpdate: (String) -> Unit
 ) {
     // Saving state of thumb positions on sliders
-    val thumbPositions =
-        remember { mutableStateListOf(*MutableList(frequencyBands.size) { Offset.Zero }.toTypedArray()) }
+    val thumbPositions = remember { List(frequencyBands.size) { Offset.Zero }.toMutableStateList() }
     // Grabbing screen orientation and setting it as boolean
     val isPortrait = (LocalConfiguration.current.orientation == Configuration.ORIENTATION_PORTRAIT)
 

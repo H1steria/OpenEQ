@@ -18,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.toMutableStateList
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
@@ -54,7 +55,7 @@ class MainActivityViewModel : ViewModel() {
     val eqRange = getEqRange()
 
     // State of the sliders (and so EQ levels)
-    var eqLevels = mutableStateListOf(*MutableList(eqFrequencyBands.size) { 0f }.toTypedArray())
+    var eqLevels = List(eqFrequencyBands.size) { 0f }.toMutableStateList()
 
     // List of preset ID strings
     var presetIdStrings = mutableStateListOf<String>()
