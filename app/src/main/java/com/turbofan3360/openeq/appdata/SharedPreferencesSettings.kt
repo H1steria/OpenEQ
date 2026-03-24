@@ -12,9 +12,10 @@ class SharedPreferencesSettings(context: Context) {
     val sharedPref: SharedPreferences by lazy { context.getSharedPreferences("app_settings", MODE_PRIVATE) }
 
     fun getAppSettingBoolean(
-        key: String
+        key: String,
+        default: Boolean
     ): Boolean {
-        val setting = sharedPref.getBoolean(key, false)
+        val setting = sharedPref.getBoolean(key, default)
 
         return setting
     }

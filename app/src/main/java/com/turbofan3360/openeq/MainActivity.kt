@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -21,10 +20,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.edit
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import com.turbofan3360.openeq.appdata.DatabaseHandler
+import com.turbofan3360.openeq.appdata.SharedPreferencesSettings
 import com.turbofan3360.openeq.audioprocessing.EqForegroundService
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 import com.turbofan3360.openeq.audioprocessing.getEqBands
@@ -64,7 +63,7 @@ class MainActivityViewModel : ViewModel() {
 class MainActivity : ComponentActivity() {
     val myViewModel: MainActivityViewModel by viewModels()
 
-    val sharedPref: SharedPreferences by lazy { getPreferences(MODE_PRIVATE) }
+    val appSettings by lazy { SharedPreferencesSettings(this) }
     private val appDb by lazy { DatabaseHandler() }
 
     private val foregroundServiceIntent: Intent by lazy { Intent(this, EqForegroundService::class.java) }
@@ -94,7 +93,10 @@ class MainActivity : ComponentActivity() {
         appDataInit()
 
         // Calls the function to initialize stored app settings
-        appSettingsInit()
+        myViewModel.tryGlobalAudio = appSettings.getAppSettingBoolean(
+            getString(R.string.shared_preferences_global_mix_key),
+            false
+        )
 
         // Getting preset IDs from the database
         lifecycleScope.launch {
@@ -148,7 +150,10 @@ class MainActivity : ComponentActivity() {
                         }
 
                         // Saves app settings
-                        appSettingsSave()
+                        appSettings.appSaveBoolean(
+                            getString(R.string.shared_preferences_global_mix_key),
+                            myViewModel.tryGlobalAudio
+                        )
                     },
 
                     eqLevels = myViewModel.eqLevels,
@@ -201,21 +206,6 @@ class MainActivity : ComponentActivity() {
             else {
                 appDb.addPreset("latest_eq_levels", myViewModel.eqLevels.toList())
             }
-        }
-    }
-
-    private fun appSettingsInit() {
-        // Grabs app settings from shared preferences (much simpler than the more modern data store)
-        // Currently only setting stored this way is whether attached to global audio mix or not
-
-        val globalAudioEnabled = sharedPref.getBoolean(getString(R.string.shared_preferences_global_mix_key), false)
-        myViewModel.tryGlobalAudio = globalAudioEnabled
-    }
-
-    private fun appSettingsSave() {
-        // Saves app settings to the shared preferences
-        sharedPref.edit {
-            putBoolean(getString(R.string.shared_preferences_global_mix_key), myViewModel.tryGlobalAudio)
         }
     }
 
