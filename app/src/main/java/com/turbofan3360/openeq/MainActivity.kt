@@ -13,7 +13,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
-import com.turbofan3360.openeq.appdata.DatabaseHandler
+import com.turbofan3360.openeq.appdata.RoomDatabaseHandler
 import com.turbofan3360.openeq.appdata.SharedPreferencesSettings
 import com.turbofan3360.openeq.audioprocessing.ForegroundServiceHandler
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
@@ -22,8 +22,6 @@ import com.turbofan3360.openeq.audioprocessing.getEqRange
 import com.turbofan3360.openeq.audioprocessing.globalEqAllowed
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 class MainActivityViewModel : ViewModel() {
     // State - whether EQ service is enabled or not
@@ -55,7 +53,7 @@ class MainActivity : ComponentActivity() {
     val myViewModel: MainActivityViewModel by viewModels()
 
     val appSettings by lazy { SharedPreferencesSettings(this) }
-    private val appDb by lazy { DatabaseHandler() }
+    private val appDb by lazy { RoomDatabaseHandler(lifecycleScope) }
     private val foregroundServiceHandler by lazy { ForegroundServiceHandler(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -122,20 +120,40 @@ class MainActivity : ComponentActivity() {
                     eqRange = myViewModel.eqRange,
 
                     presetIds = myViewModel.presetIdStrings,
-                    onPresetSelect = { presetId -> loadPreset(presetId) },
-                    onPresetSave = { presetId -> newPreset(presetId) },
-                    onPresetDelete = { presetId -> deletePreset(presetId) },
-                    onPresetUpdate = { presetId -> updatePreset(presetId) }
+
+                    onPresetUpdate = { presetId -> appDb.updatePreset(presetId, myViewModel.eqLevels, false) },
+                    onPresetSave = { presetId ->
+                        val status = appDb.addPreset(presetId, myViewModel.eqLevels)
+                        if (status) myViewModel.presetIdStrings += presetId
+                    },
+                    onPresetSelect = { presetId ->
+                        appDb.getPreset(
+                            presetId
+                        ) { presetVals ->
+                            // Updating the EQ levels to the retrieved values
+                            myViewModel.eqLevels.clear()
+                            myViewModel.eqLevels.addAll(presetVals)
+                        }
+                    },
+                    onPresetDelete = { presetId ->
+                        val status = appDb.deletePreset(
+                            presetId
+                        ) {
+                            // Clearing the EQ levels
+                            for (i in 0..<myViewModel.eqLevels.size) {
+                                myViewModel.eqLevels[i] = 0f
+                            }
+                        }
+                        if (status) myViewModel.presetIdStrings.remove(presetId)
+                    }
                 )
             }
         }
     }
 
     override fun onDestroy() {
-        // Saves the latest EQ levels to the database and waits for the operation to complete
-        runBlocking {
-            appDb.updatePreset("latest_eq_levels", myViewModel.eqLevels)
-        }
+        // Saves the latest EQ levels to the database (blocking=true)
+        appDb.updatePreset("latest_eq_levels", myViewModel.eqLevels, true)
 
         // Unbinds from the foreground service if it's bound
         foregroundServiceHandler.unbindForegroundService()
@@ -153,16 +171,6 @@ class MainActivity : ComponentActivity() {
             false
         )
 
-        // Getting preset IDs from the database
-        lifecycleScope.launch {
-            val strings = appDb.getAllPresetIds()
-
-            if (strings != null) {
-                myViewModel.presetIdStrings.clear()
-                myViewModel.presetIdStrings.addAll(strings)
-            }
-        }
-
         // Re-binds to the foreground service if it was left running upon last app destruction
         foregroundServiceHandler.findMediaListenService(
             { myViewModel.eqEnabled = true },
@@ -173,89 +181,22 @@ class MainActivity : ComponentActivity() {
 
     private fun appDatabaseInit() {
         // Starts the app database to access stored preset info
-        // WARNING: DO NOT START THE DATABASE AGAIN ANYWHERE ELSE IN THE APP
         appDb.buildDatabase(this)
 
-        // Launching coroutine to get the EQ levels from previous app close and save them in the view model
-        lifecycleScope.launch {
-            val values = appDb.getPreset("latest_eq_levels")
-            // Checking if a "latest_eq_levels" preset already exists, if so setting my EQ levels to it
-            if (values != null) {
-                myViewModel.eqLevels.clear()
-                myViewModel.eqLevels.addAll(values)
-            }
-            // If not - need to create one
-            else {
-                appDb.addPreset("latest_eq_levels", myViewModel.eqLevels.toList())
-            }
-        }
-    }
-
-    private fun loadPreset(id: String) {
-        // Launches a coroutine to load the user-selected preset into the EQ levels state
-        lifecycleScope.launch {
-            val presetVals = appDb.getPreset(id)
-
-            if (presetVals != null) {
-                myViewModel.eqLevels.clear()
-                myViewModel.eqLevels.addAll(presetVals)
-
-                // Sending updated EQ levels to the foreground service from the main thread
-                foregroundServiceHandler.updateEqLevels(myViewModel.eqLevels)
-            }
-        }
-    }
-
-    private fun newPreset(id: String) {
-        if (!validatePresetId(id)) {
-            return
+        // Checking if a "latest_eq_levels" preset already exists, if so setting my EQ levels to it
+        val status = appDb.getPreset(
+            "latest_eq_levels"
+        ) { values ->
+            myViewModel.eqLevels.clear()
+            myViewModel.eqLevels.addAll(values)
         }
 
-        // Launches a coroutine to save the current EQ levels as a new preset in the database
-        lifecycleScope.launch {
-            appDb.addPreset(id, myViewModel.eqLevels)
-            // Once preset added to database, adds the new preset ID to the list of preset ID string
-            myViewModel.presetIdStrings += id
-        }
-    }
-
-    private fun deletePreset(id: String) {
-        if (!myViewModel.presetIdStrings.contains(id)) {
-            return
+        // If "latest_eq_levels" preset doesn't exist, need to create one
+        if (!status) {
+            appDb.addPreset("latest_eq_levels", myViewModel.eqLevels)
         }
 
-        // Launches coroutine to remove preset from database
-        lifecycleScope.launch {
-            appDb.deletePreset(id)
-            // Once added to the database, can remove the preset ID string from the list
-            myViewModel.presetIdStrings.remove(id)
-
-            // Clearing all EQ levels
-            for (i in 0..<myViewModel.eqLevels.size) {
-                myViewModel.eqLevels[i] = 0f
-            }
-
-            // Sending updated EQ levels to the foreground service from the main thread
-            foregroundServiceHandler.updateEqLevels(myViewModel.eqLevels)
-        }
-    }
-
-    private fun updatePreset(id: String) {
-        if (!myViewModel.presetIdStrings.contains(id)) {
-            return
-        }
-
-        // Launches coroutine to update preset in database to current EQ levels
-        lifecycleScope.launch {
-            appDb.updatePreset(id, myViewModel.eqLevels)
-        }
-    }
-
-    private fun validatePresetId(id: String): Boolean {
-        // Checks given preset ID is valid
-        if (id.isBlank() || myViewModel.presetIdStrings.contains(id)) {
-            return false
-        }
-        return true
+        myViewModel.presetIdStrings.addAll(RoomDatabaseHandler.idStrings)
+        myViewModel.presetIdStrings.remove("latest_eq_levels") // Don't want this to appear in the UI
     }
 }
