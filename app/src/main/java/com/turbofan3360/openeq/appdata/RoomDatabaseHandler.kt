@@ -11,10 +11,10 @@ import kotlinx.coroutines.runBlocking
 class RoomDatabaseHandler(scope: CoroutineScope) {
     private var db: EqPresetDatabase? = null
     private var myScope = scope
+    var idStrings = mutableListOf<String>()
 
     companion object {
         var dbInitialized = false
-        var idStrings = mutableListOf<String>()
     }
 
     // Function to build the database instance
@@ -57,26 +57,32 @@ class RoomDatabaseHandler(scope: CoroutineScope) {
     fun updatePreset(
         stringPresetId: String,
         eqLevels: List<Float>,
-        blocking: Boolean
     ) {
         if (!idStrings.contains(stringPresetId)) {
             return
         }
 
-        if (blocking) {
-            // On app termination - preset update needs to be blocking to ensure completion, so have this option
-            runBlocking {
-                val serializedEqLevels = Gson().toJson(eqLevels)
+        // Launches coroutine to update preset in database to current EQ levels
+        myScope.launch {
+            val serializedEqLevels = Gson().toJson(eqLevels)
 
-                db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
-            }
-        } else {
-            // Launches coroutine to update preset in database to current EQ levels
-            myScope.launch {
-                val serializedEqLevels = Gson().toJson(eqLevels)
+            db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
+        }
+    }
 
-                db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
-            }
+    fun updatePresetBlocking(
+        stringPresetId: String,
+        eqLevels: List<Float>
+    ) {
+        if (!idStrings.contains(stringPresetId)) {
+            return
+        }
+
+        // Sometimes preset update needs to be blocking to ensure completion, so have this option
+        runBlocking {
+            val serializedEqLevels = Gson().toJson(eqLevels)
+
+            db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
         }
     }
 

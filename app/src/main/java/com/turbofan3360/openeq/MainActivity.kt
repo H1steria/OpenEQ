@@ -68,51 +68,15 @@ class MainActivity : ComponentActivity() {
             OpenEQTheme {
                 MainScreen(
                     eqEnabled = myViewModel.eqEnabled,
-                    eqToggle = {
-                        // Handles starting/stopping the EQ foreground service
-                        // If EQ not already enabled, enable it:
-                        if (!myViewModel.eqEnabled) {
-                            // Started depends on whether user allowed notifications (notification permission required)
-                            val started = foregroundServiceHandler.startMediaListenService(
-                                this,
-                                myViewModel.eqLevels,
-                                myViewModel.tryGlobalAudio
-                            )
-                            myViewModel.eqEnabled = started
-                        } else {
-                            foregroundServiceHandler.stopMediaListenService()
-                            myViewModel.eqEnabled = false
-                        }
-                    },
+                    eqToggle = ::toggleEq,
 
                     tryGlobal = myViewModel.tryGlobalAudio,
-                    setGlobal = {
-                        // Toggles whether to attach EQ to the global audio mix (not supported on all devices)
-                        if (myViewModel.globalAudioAllowed) {
-                            myViewModel.tryGlobalAudio = it
-                            foregroundServiceHandler.updateGlobalAudio(myViewModel.tryGlobalAudio)
-                        } else {
-                            // If device doesn't support global EQ, show an error message
-                            Toast.makeText(
-                                this,
-                                getString(R.string.global_mix_error_toast_message),
-                                Toast.LENGTH_LONG
-                            )
-                                .show()
-                            myViewModel.tryGlobalAudio = false
-                        }
-
-                        // Saves app settings
-                        appSettings.appSaveBoolean(
-                            getString(R.string.shared_preferences_global_mix_key),
-                            myViewModel.tryGlobalAudio
-                        )
-                    },
+                    toggleGlobal = ::toggleGlobalAudio,
 
                     eqLevels = myViewModel.eqLevels,
+                    // Saving EQ levels + passing them to the foreground service managing EQ objects
                     updateEqLevel = { index: Int, value: Float ->
                         myViewModel.eqLevels[index] = value
-                        // Passing updated EQ levels to the foreground service managing EQ objects
                         foregroundServiceHandler.updateEqLevels(myViewModel.eqLevels)
                     },
 
@@ -121,7 +85,9 @@ class MainActivity : ComponentActivity() {
 
                     presetIds = myViewModel.presetIdStrings,
 
-                    onPresetUpdate = { presetId -> appDb.updatePreset(presetId, myViewModel.eqLevels, false) },
+                    onPresetUpdate = { presetId ->
+                        appDb.updatePreset(presetId, myViewModel.eqLevels)
+                    },
                     onPresetSave = { presetId ->
                         val status = appDb.addPreset(presetId, myViewModel.eqLevels)
                         if (status) myViewModel.presetIdStrings += presetId
@@ -152,8 +118,8 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        // Saves the latest EQ levels to the database (blocking=true)
-        appDb.updatePreset("latest_eq_levels", myViewModel.eqLevels, true)
+        // Saves the latest EQ levels to the database (blocking to ensure completion)
+        appDb.updatePresetBlocking("latest_eq_levels", myViewModel.eqLevels)
 
         // Unbinds from the foreground service if it's bound
         foregroundServiceHandler.unbindForegroundService()
@@ -196,7 +162,50 @@ class MainActivity : ComponentActivity() {
             appDb.addPreset("latest_eq_levels", myViewModel.eqLevels)
         }
 
-        myViewModel.presetIdStrings.addAll(RoomDatabaseHandler.idStrings)
+        myViewModel.presetIdStrings.addAll(appDb.idStrings)
         myViewModel.presetIdStrings.remove("latest_eq_levels") // Don't want this to appear in the UI
+    }
+
+    private fun toggleEq() {
+        // Handles starting/stopping the EQ foreground service
+        // If EQ not already enabled, enable it:
+        if (!myViewModel.eqEnabled) {
+            // Started depends on whether user allowed notifications (notification permission required)
+            val started = foregroundServiceHandler.startMediaListenService(
+                this,
+                myViewModel.eqLevels,
+                myViewModel.tryGlobalAudio
+            )
+
+            myViewModel.eqEnabled = started
+        } else {
+            foregroundServiceHandler.stopMediaListenService()
+            myViewModel.eqEnabled = false
+        }
+    }
+
+    private fun toggleGlobalAudio() {
+        // Toggles whether to attach EQ to the global audio mix (not supported on all devices)
+        if (myViewModel.globalAudioAllowed) {
+            myViewModel.tryGlobalAudio = !myViewModel.tryGlobalAudio
+
+            foregroundServiceHandler.updateGlobalAudio(myViewModel.tryGlobalAudio)
+        } else {
+            // If device doesn't support global EQ, show an error message
+            Toast.makeText(
+                this,
+                getString(R.string.global_mix_error_toast_message),
+                Toast.LENGTH_LONG
+            )
+                .show()
+
+            myViewModel.tryGlobalAudio = false
+        }
+
+        // Saves app settings
+        appSettings.appSaveBoolean(
+            getString(R.string.shared_preferences_global_mix_key),
+            myViewModel.tryGlobalAudio
+        )
     }
 }

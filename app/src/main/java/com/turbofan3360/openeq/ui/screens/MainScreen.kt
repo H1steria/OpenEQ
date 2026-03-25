@@ -85,7 +85,7 @@ fun MainScreen(
     eqEnabled: Boolean,
     eqToggle: () -> Unit,
     tryGlobal: Boolean,
-    setGlobal: (Boolean) -> Unit,
+    toggleGlobal: () -> Unit,
     eqLevels: MutableList<Float>,
     updateEqLevel: (Int, Float) -> Unit,
     frequencyBands: List<String>,
@@ -107,7 +107,7 @@ fun MainScreen(
         topBar = {
             AppTitle(
                 tryGlobal,
-                setGlobal,
+                toggleGlobal,
                 presetIds,
                 onPresetSelect,
                 onPresetSave,
@@ -332,7 +332,7 @@ private fun EQCurve(
 @Composable
 private fun AppTitle(
     tryGlobal: Boolean,
-    setGlobal: (Boolean) -> Unit,
+    toggleGlobal: () -> Unit,
     presetIds: List<String>,
     onPresetSelect: (String) -> Unit,
     onPresetSave: (String) -> Unit,
@@ -378,7 +378,7 @@ private fun AppTitle(
                 onDismissRequest = { menuOpen = false },
                 modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)
             ) {
-                ConfigMenuItems(tryGlobal, setGlobal)
+                ConfigMenuItems(tryGlobal, toggleGlobal)
 
                 // Placing a line between the other things and the preset controls
                 HorizontalDivider()
@@ -514,7 +514,7 @@ private fun AppTitle(
 @Composable
 private fun ConfigMenuItems(
     tryGlobal: Boolean,
-    setGlobal: (Boolean) -> Unit
+    toggleGlobal: () -> Unit
 ) {
     // Handles the menu items used to configure the equalizer
 
@@ -550,11 +550,11 @@ private fun ConfigMenuItems(
         trailingIcon = {
             Checkbox(
                 checked = tryGlobal,
-                onCheckedChange = { setGlobal(!tryGlobal) },
+                onCheckedChange = { toggleGlobal() },
                 modifier = Modifier.padding(0.dp)
             )
         },
-        onClick = { setGlobal(!tryGlobal) }
+        onClick = { toggleGlobal() }
     )
 }
 
