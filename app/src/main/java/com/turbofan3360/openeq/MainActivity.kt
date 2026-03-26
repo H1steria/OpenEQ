@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         // Saves the latest EQ levels to the database (blocking to ensure completion)
         appDb.updatePresetBlocking("latest_eq_levels", myViewModel.eqLevels)
+        RoomDatabaseHandler.dbInitialized = false
 
         // Unbinds from the foreground service if it's bound
         foregroundServiceHandler.unbindForegroundService()
@@ -162,7 +163,7 @@ class MainActivity : ComponentActivity() {
             appDb.addPreset("latest_eq_levels", myViewModel.eqLevels)
         }
 
-        myViewModel.presetIdStrings.addAll(appDb.idStrings)
+        myViewModel.presetIdStrings.addAll(RoomDatabaseHandler.idStrings)
         myViewModel.presetIdStrings.remove("latest_eq_levels") // Don't want this to appear in the UI
     }
 

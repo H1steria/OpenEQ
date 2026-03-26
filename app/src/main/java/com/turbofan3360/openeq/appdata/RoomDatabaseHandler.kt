@@ -1,6 +1,7 @@
 package com.turbofan3360.openeq.appdata
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
@@ -11,10 +12,10 @@ import kotlinx.coroutines.runBlocking
 class RoomDatabaseHandler(scope: CoroutineScope) {
     private var db: EqPresetDatabase? = null
     private var myScope = scope
-    var idStrings = mutableListOf<String>()
 
     companion object {
         var dbInitialized = false
+        var idStrings = mutableListOf<String>()
     }
 
     // Function to build the database instance
@@ -136,6 +137,7 @@ class RoomDatabaseHandler(scope: CoroutineScope) {
 
             if (presetIds != null) {
                 // Removes this preset ID which is just used for storing the most recent EQ levels
+                idStrings.clear()
                 idStrings.addAll(presetIds)
             }
         }
