@@ -34,16 +34,16 @@ fun VerticalSlider(
     updateThumbPosition: (Offset) -> Unit,
     trackColor: Color,
     thumbColor: Color,
-    valueRange: ClosedFloatingPointRange<Float>
+    valueRange: List<Float>
 ) {
     // Draws and handles a vertical slider component
 
     // Calculates the position offsets for the thumb circle
-    val sliderRange = valueRange.endInclusive - valueRange.start
+    val sliderRange = valueRange[1] - valueRange[0]
     val heightPx = with(LocalDensity.current) { height.toPx() }
     val circleOffsets = Offset(
         x = HEIGHT_TO_WIDTH * heightPx,
-        y = (heightPx / sliderRange) * (valueRange.endInclusive - value)
+        y = (heightPx / sliderRange) * (valueRange[1] - value)
     )
     var canvasPos by remember { mutableStateOf(Offset.Zero) }
     var thumbPos by remember { mutableStateOf(Offset.Zero) }
@@ -68,8 +68,8 @@ fun VerticalSlider(
                     onDrag = { _, dragDelta ->
                         thumbPos += dragDelta
                         // Computing the slider value from the pixel positions
-                        val eqValue = valueRange.endInclusive - (thumbPos.y / heightPx) * sliderRange
-                        onValueChange(eqValue.coerceIn(valueRange.start, valueRange.endInclusive))
+                        val eqValue = valueRange[1] - (thumbPos.y / heightPx) * sliderRange
+                        onValueChange(eqValue.coerceIn(valueRange[0], valueRange[1]))
                     }
                 )
             }

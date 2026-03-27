@@ -86,7 +86,7 @@ fun MainScreen(
     eqToggle: () -> Unit,
     tryGlobal: Boolean,
     toggleGlobal: () -> Unit,
-    eqLevels: MutableList<Float>,
+    eqLevels: List<Float>,
     updateEqLevel: (Int, Float) -> Unit,
     frequencyBands: List<String>,
     eqRange: List<Float>,
@@ -105,7 +105,7 @@ fun MainScreen(
     Scaffold(
         // Creating the "OpenEQ" app bar at the top of the main screen
         topBar = {
-            AppTitle(
+            AppTitleBar(
                 tryGlobal,
                 toggleGlobal,
                 presetIds,
@@ -157,12 +157,10 @@ fun MainScreen(
                 with(LocalDensity.current) { innerPadding.calculateLeftPadding(LayoutDirection.Ltr).toPx() }
 
             EQSliders(
-                scope.maxHeight,
-                scope.maxWidth,
+                listOf(scope.maxWidth, scope.maxHeight),
                 isPortrait,
                 frequencyBands,
-                eqRange[0],
-                eqRange[1],
+                eqRange,
                 eqLevels,
                 updateEqLevel,
                 thumbPositions
@@ -176,32 +174,30 @@ fun MainScreen(
 
 @Composable
 private fun EQSliders(
-    boxHeight: Dp,
-    boxWidth: Dp,
+    boxSize: List<Dp>,
     isPortrait: Boolean,
     frequencyBands: List<String>,
-    eqMin: Float,
-    eqMax: Float,
-    eqLevels: MutableList<Float>,
+    eqRange: List<Float>,
+    eqLevels: List<Float>,
     updateEqLevel: (Int, Float) -> Unit,
     thumbPositions: MutableList<Offset>
 ) {
     // Simple scaling of sliders and spacers to adapt to the screen size
     // Changes scaling depending on screen orientation
     val sliderHeight = if (isPortrait) {
-        SLIDER_HEIGHT_SCALAR_PORTRAIT * boxHeight
+        SLIDER_HEIGHT_SCALAR_PORTRAIT * boxSize[1]
     } else {
-        SLIDER_HEIGHT_SCALAR_LANDSCAPE * boxHeight
+        SLIDER_HEIGHT_SCALAR_LANDSCAPE * boxSize[1]
     }
 
-    val spacerHeight = (boxHeight - sliderHeight) / SPACER_HEIGHT_SCALAR
+    val spacerHeight = (boxSize[1] - sliderHeight) / SPACER_HEIGHT_SCALAR
 
     Row(
         // Tweaks width of sliders depending on screen orientation
         modifier = if (isPortrait) {
             Modifier.fillMaxWidth()
         } else {
-            Modifier.width(LANDSCAPE_SLIDERS_WIDTH_SCALAR * boxWidth)
+            Modifier.width(LANDSCAPE_SLIDERS_WIDTH_SCALAR * boxSize[0])
         },
 
         // Evenly spacing the EQ sliders across the screen
@@ -209,7 +205,7 @@ private fun EQSliders(
     ) {
         // If in landscape: spacing things in from the screen edge a little bit
         if (!isPortrait) {
-            Spacer(modifier = Modifier.width(LANDSCAPE_PADDING_SIZE_SCALAR * boxWidth))
+            Spacer(modifier = Modifier.width(LANDSCAPE_PADDING_SIZE_SCALAR * boxSize[0]))
         }
         // Repeating the slider the right number of times across the screen
         repeat(frequencyBands.size) { sliderNo ->
@@ -242,7 +238,7 @@ private fun EQSliders(
                     trackColor = MaterialTheme.colorScheme.tertiary,
                     thumbColor = MaterialTheme.colorScheme.primary,
                     // Adapting slider range to be whatever the system supports
-                    valueRange = eqMin..eqMax
+                    valueRange = eqRange
                 )
                 // Adding spacing
                 Spacer(modifier = Modifier.height(spacerHeight))
@@ -330,7 +326,7 @@ private fun EQCurve(
 // CenterAlignedTopAppBar is an experimental API so need to allow it
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppTitle(
+private fun AppTitleBar(
     tryGlobal: Boolean,
     toggleGlobal: () -> Unit,
     presetIds: List<String>,

@@ -1,7 +1,6 @@
 package com.turbofan3360.openeq.appdata
 
 import android.content.Context
-import android.util.Log
 import androidx.room.Room
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
