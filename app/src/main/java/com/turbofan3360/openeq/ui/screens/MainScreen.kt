@@ -361,77 +361,16 @@ private fun AppTitleBar(
                 onDismissRequest = { menuOpen = false },
                 modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)
             ) {
+                // Function to handle menu options relating to the app configuration
                 TopBarMenuConfigItems(tryGlobal, toggleGlobal)
 
                 // Placing a line between the other things and the preset controls
                 HorizontalDivider()
 
-                // Button to save current EQ values as a new preset to the database
-                DropdownMenuItem(
-                    onClick = {
-                        menuOpen = false
-                        optionSelected = "save_preset"
-                    },
-                    text = { SmallSecondaryText(stringResource(R.string.menu_save_new_preset)) },
-                    // Icon at start of menu item
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Save,
-                            contentDescription = stringResource(R.string.menu_save_as_icon_description),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                )
-
-                // Button to load a preset from the database
-                DropdownMenuItem(
-                    onClick = {
-                        menuOpen = false
-                        optionSelected = "load_preset"
-                    },
-                    text = { SmallSecondaryText(stringResource(R.string.menu_load_preset)) },
-                    // Icon at start of menu item
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Cached,
-                            contentDescription = stringResource(R.string.menu_load_preset_icon_description),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                )
-
-                // Button to update a preset in the database
-                DropdownMenuItem(
-                    onClick = {
-                        menuOpen = false
-                        optionSelected = "update_preset"
-                    },
-                    text = { SmallSecondaryText(stringResource(R.string.menu_update_preset)) },
-                    // Icon at start of menu item
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = stringResource(R.string.menu_update_preset_icon_description),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
-                )
-
-                // Button to delete a preset from the database
-                DropdownMenuItem(
-                    onClick = {
-                        menuOpen = false
-                        optionSelected = "delete_preset"
-                    },
-                    text = { SmallSecondaryText(stringResource(R.string.menu_delete_preset)) },
-                    // Icon at start of menu item
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Delete,
-                            contentDescription = stringResource(R.string.menu_delete_preset_icon_description),
-                            tint = MaterialTheme.colorScheme.secondary
-                        )
-                    }
+                // Function to handle menu options relating to user-defined presets
+                TopBarMenuPresetItems(
+                    closeMenu = { menuOpen = false },
+                    setOption = { value -> optionSelected = value }
                 )
             }
         }
@@ -490,6 +429,80 @@ private fun TopBarMenuConfigItems(
             )
         },
         onClick = { toggleGlobal() }
+    )
+}
+
+@Composable
+private fun TopBarMenuPresetItems(
+    closeMenu: () -> Unit,
+    setOption: (String) -> Unit
+) {
+    // Button to save current EQ values as a new preset to the database
+    DropdownMenuItem(
+        onClick = {
+            closeMenu()
+            setOption("save_preset")
+        },
+        text = { SmallSecondaryText(stringResource(R.string.menu_save_new_preset)) },
+        // Icon at start of menu item
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Save,
+                contentDescription = stringResource(R.string.menu_save_as_icon_description),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        }
+    )
+
+    // Button to load a preset from the database
+    DropdownMenuItem(
+        onClick = {
+            closeMenu()
+            setOption("load_preset")
+        },
+        text = { SmallSecondaryText(stringResource(R.string.menu_load_preset)) },
+        // Icon at start of menu item
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Cached,
+                contentDescription = stringResource(R.string.menu_load_preset_icon_description),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        }
+    )
+
+    // Button to update a preset in the database
+    DropdownMenuItem(
+        onClick = {
+            closeMenu()
+            setOption("update_preset")
+        },
+        text = { SmallSecondaryText(stringResource(R.string.menu_update_preset)) },
+        // Icon at start of menu item
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Edit,
+                contentDescription = stringResource(R.string.menu_update_preset_icon_description),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        }
+    )
+
+    // Button to delete a preset from the database
+    DropdownMenuItem(
+        onClick = {
+            closeMenu()
+            setOption("delete_preset")
+        },
+        text = { SmallSecondaryText(stringResource(R.string.menu_delete_preset)) },
+        // Icon at start of menu item
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Rounded.Delete,
+                contentDescription = stringResource(R.string.menu_delete_preset_icon_description),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        }
     )
 }
 

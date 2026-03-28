@@ -154,7 +154,11 @@ class MainActivity : ComponentActivity() {
 
         // If "latest_eq_levels" preset doesn't exist, need to create one
         if (!status) {
-            RoomDatabaseHandler.addPreset(getString(R.string.db_key_recent_eq_levels), myViewModel.eqLevels, lifecycleScope)
+            RoomDatabaseHandler.addPreset(
+                getString(R.string.db_key_recent_eq_levels),
+                myViewModel.eqLevels,
+                lifecycleScope
+            )
         }
     }
 
