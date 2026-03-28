@@ -8,6 +8,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
 // Class for the user to easily handle the database, serializing and de-serializing data
+// "object" enforces this as a singleton
 object RoomDatabaseHandler {
     private var db: EqPresetDatabase? = null
 
