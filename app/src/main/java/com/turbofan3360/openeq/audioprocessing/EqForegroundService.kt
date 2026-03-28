@@ -1,9 +1,5 @@
 package com.turbofan3360.openeq.audioprocessing
 
-
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -16,7 +12,9 @@ import android.media.audiofx.AudioEffect
 import android.media.audiofx.Equalizer
 import android.os.Binder
 import android.os.IBinder
-
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import com.turbofan3360.openeq.MainActivity
 import com.turbofan3360.openeq.R
 
@@ -24,9 +22,11 @@ private const val PERMANENT_NOTIFICATION_ID = 1
 private const val NOTIFICATION_CHANNEL_ID = "eq_service_channel"
 
 // Foreground service that listens for media streams starting and then attaches equalizers to them
-class EQMediaListenerService: Service() {
-    // Initialises on first access to variable
-    private val notificationManager: NotificationManager by lazy{getSystemService(NOTIFICATION_SERVICE) as NotificationManager}
+class EqForegroundService : Service() {
+    // Initializes on first access to variable
+    private val notificationManager: NotificationManager by lazy {
+        getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    }
 
     private val mediaStreamStartListener = MediaStreamStartReceiver()
     private val mediaStreamStopListener = MediaStreamStopReceiver()
@@ -35,18 +35,18 @@ class EQMediaListenerService: Service() {
     private var tryGlobalMix = false
     private var binder = LocalBinder()
 
-    //---------------------------------
+    // ---------------------------------
     // Handles binding to this service
-    //---------------------------------
+    // ---------------------------------
     inner class LocalBinder : Binder() {
-        fun getService() = this@EQMediaListenerService
+        fun getService() = this@EqForegroundService
     }
 
     override fun onBind(intent: Intent): IBinder {
         // Returns a binder object to interact with this service
         return binder
     }
-    //---------------------------------
+    // ---------------------------------
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // Called when starting the service
@@ -103,7 +103,7 @@ class EQMediaListenerService: Service() {
     }
 
     // Public function that lets you update whether or not the EQ tries to use the global mix
-    fun setTryGlobal(value: Boolean) {
+    fun updateTryGlobalAudio(value: Boolean) {
         tryGlobalMix = value
 
         // If the user has enabled global mix EQ, then create a global EQ instance and clear all the others
@@ -136,7 +136,12 @@ class EQMediaListenerService: Service() {
         )
 
         // Creating the intent to happen when notification is tapped
-        val tapIntent: PendingIntent = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+        val tapIntent: PendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
 
         // Creating the notification object for my foreground service notification
         val notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
@@ -156,7 +161,7 @@ class EQMediaListenerService: Service() {
     private fun createEqNotificationChannel(
         channelName: String,
         channelDescription: String,
-    ){
+    ) {
         // Checking if it already exists (if so, don't re-create it)
         val existingChannel = notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID)
 
@@ -183,7 +188,7 @@ class EQMediaListenerService: Service() {
     //  BROADCAST RECEIVERS
     // ---------------------
 
-    inner class MediaStreamStartReceiver: BroadcastReceiver() {
+    inner class MediaStreamStartReceiver : BroadcastReceiver() {
         // Defining what happens when it detects a media stream starting
         override fun onReceive(context: Context?, intent: Intent?) {
             // If user wants to attach to the global mix - ignore all this
@@ -197,14 +202,14 @@ class EQMediaListenerService: Service() {
             // If the ID is valid, creates an equalizer object attached to that stream
             // Saves the equalizer object to the map
             // Then sets the equalizer levels on that EQ object to the current levels
-            if(mediaStreamID != null && mediaStreamID != 0 && !eqObjects.containsKey(mediaStreamID)) {
+            if (mediaStreamID != null && mediaStreamID != 0 && !eqObjects.containsKey(mediaStreamID)) {
                 eqObjects[mediaStreamID] = addEqualizer(mediaStreamID)
                 setEqualizer(eqObjects[mediaStreamID]!!, eqLevels)
             }
         }
     }
 
-    inner class MediaStreamStopReceiver: BroadcastReceiver() {
+    inner class MediaStreamStopReceiver : BroadcastReceiver() {
         // Defining what happens when it detects a media stream ending
         override fun onReceive(context: Context?, intent: Intent?) {
             // If user wants to attach to the global mix - ignore all this
@@ -215,7 +220,8 @@ class EQMediaListenerService: Service() {
             // Getting audio stream ID
             val mediaStreamID = intent?.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, 0)
 
-            // If the ID is valid, gets the EQ object attached to the given media stream, closes the EQ, and removes it from the map
+            // If the ID is valid:
+            // Gets the EQ object attached to the given media stream, closes the EQ, and removes it from the map
             if (mediaStreamID != null && mediaStreamID != 0) {
                 val eqObj = eqObjects[mediaStreamID]
 
