@@ -14,8 +14,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.input.rememberTextFieldState
-import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Cached
 import androidx.compose.material.icons.rounded.Delete
@@ -26,26 +24,20 @@ import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.SettingsBackupRestore
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
-import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeFloatingActionButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -59,17 +51,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.times
 import com.turbofan3360.openeq.R
+import com.turbofan3360.openeq.ui.components.DeletePresetDialog
+import com.turbofan3360.openeq.ui.components.LoadPresetDialog
+import com.turbofan3360.openeq.ui.components.SavePresetDialog
+import com.turbofan3360.openeq.ui.components.UpdatePresetDialog
 import com.turbofan3360.openeq.ui.components.VerticalSlider
 import com.turbofan3360.openeq.ui.utils.generateSplineControlPoint
 import com.turbofan3360.openeq.ui.utils.roundOneDP
@@ -91,7 +85,6 @@ fun MainScreen(
     frequencyBands: List<String>,
     eqRange: List<Float>,
 
-    presetIds: List<String>,
     onPresetSelect: (String) -> Unit,
     onPresetSave: (String) -> Unit,
     onPresetDelete: (String) -> Unit,
@@ -108,7 +101,6 @@ fun MainScreen(
             AppTitleBar(
                 tryGlobal,
                 toggleGlobal,
-                presetIds,
                 onPresetSelect,
                 onPresetSave,
                 onPresetDelete,
@@ -235,8 +227,7 @@ private fun EQSliders(
                     // Modifying state variable when slider moved
                     onValueChange = { newValue -> updateEqLevel(sliderNo, roundOneDP(newValue)) },
                     updateThumbPosition = { coordinates -> thumbPositions[sliderNo] = coordinates },
-                    trackColor = MaterialTheme.colorScheme.tertiary,
-                    thumbColor = MaterialTheme.colorScheme.primary,
+                    colors = MaterialTheme.colorScheme,
                     // Adapting slider range to be whatever the system supports
                     valueRange = eqRange
                 )
@@ -329,17 +320,13 @@ private fun EQCurve(
 private fun AppTitleBar(
     tryGlobal: Boolean,
     toggleGlobal: () -> Unit,
-    presetIds: List<String>,
     onPresetSelect: (String) -> Unit,
     onPresetSave: (String) -> Unit,
     onPresetDelete: (String) -> Unit,
     onPresetUpdate: (String) -> Unit
 ) {
+    var optionSelected by remember { mutableStateOf("") }
     var menuOpen by remember { mutableStateOf(false) }
-    var savePresetDialogOpen by remember { mutableStateOf(false) }
-    var updatePresetDialogOpen by remember { mutableStateOf(false) }
-    var loadPresetDialogOpen by remember { mutableStateOf(false) }
-    var deletePresetDialogOpen by remember { mutableStateOf(false) }
 
     // Handles the app bar at the top of the UI
     CenterAlignedTopAppBar(
@@ -374,7 +361,7 @@ private fun AppTitleBar(
                 onDismissRequest = { menuOpen = false },
                 modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer)
             ) {
-                ConfigMenuItems(tryGlobal, toggleGlobal)
+                TopBarMenuConfigItems(tryGlobal, toggleGlobal)
 
                 // Placing a line between the other things and the preset controls
                 HorizontalDivider()
@@ -383,7 +370,7 @@ private fun AppTitleBar(
                 DropdownMenuItem(
                     onClick = {
                         menuOpen = false
-                        savePresetDialogOpen = true
+                        optionSelected = "save_preset"
                     },
                     text = { SmallSecondaryText(stringResource(R.string.menu_save_new_preset)) },
                     // Icon at start of menu item
@@ -400,7 +387,7 @@ private fun AppTitleBar(
                 DropdownMenuItem(
                     onClick = {
                         menuOpen = false
-                        loadPresetDialogOpen = true
+                        optionSelected = "load_preset"
                     },
                     text = { SmallSecondaryText(stringResource(R.string.menu_load_preset)) },
                     // Icon at start of menu item
@@ -417,7 +404,7 @@ private fun AppTitleBar(
                 DropdownMenuItem(
                     onClick = {
                         menuOpen = false
-                        updatePresetDialogOpen = true
+                        optionSelected = "update_preset"
                     },
                     text = { SmallSecondaryText(stringResource(R.string.menu_update_preset)) },
                     // Icon at start of menu item
@@ -434,7 +421,7 @@ private fun AppTitleBar(
                 DropdownMenuItem(
                     onClick = {
                         menuOpen = false
-                        deletePresetDialogOpen = true
+                        optionSelected = "delete_preset"
                     },
                     text = { SmallSecondaryText(stringResource(R.string.menu_delete_preset)) },
                     // Icon at start of menu item
@@ -450,69 +437,21 @@ private fun AppTitleBar(
         }
     )
 
-    // Save preset dialog
-    PresetDialogStructure(
-        savePresetDialogOpen,
-        listOf(""), // Element not used
-        onPresetSave,
-        onDismiss = { savePresetDialogOpen = false },
-        false,
-        Icons.Rounded.Save,
-        stringResource(R.string.save_preset_dialog_icon_description),
-        stringResource(R.string.save_preset_dialog_title),
-        stringResource(R.string.save_preset_dialog_text),
-        stringResource(R.string.save_preset_dialog_input_box_label)
-    )
-
-    // Update preset dialog
-    PresetDialogStructure(
-        updatePresetDialogOpen,
-        presetIds,
-        onPresetUpdate,
-        onDismiss = { updatePresetDialogOpen = false },
-        true,
-        Icons.Rounded.Edit,
-        stringResource(R.string.update_preset_dialog_icon_description),
-        stringResource(R.string.update_preset_dialog_title),
-        stringResource(R.string.update_preset_dialog_text),
-        "" // Element not used
-    )
-
-    // Load preset dialog
-    PresetDialogStructure(
-        loadPresetDialogOpen,
-        presetIds,
-        onPresetSelect,
-        onDismiss = { loadPresetDialogOpen = false },
-        true,
-        Icons.Rounded.Cached,
-        stringResource(R.string.load_preset_dialog_icon_description),
-        stringResource(R.string.load_preset_dialog_title),
-        stringResource(R.string.load_preset_dialog_text),
-        "" // Element not used
-    )
-
-    // Delete preset dialog
-    PresetDialogStructure(
-        deletePresetDialogOpen,
-        presetIds,
-        onPresetDelete,
-        onDismiss = { deletePresetDialogOpen = false },
-        true,
-        Icons.Rounded.Delete,
-        stringResource(R.string.delete_preset_dialog_icon_description),
-        stringResource(R.string.delete_preset_dialog_title),
-        stringResource(R.string.delete_preset_dialog_text),
-        "" // Element not used
-    )
+    // Calling the correct dialog composables depending on what the user chose to do
+    when (optionSelected) {
+        "save_preset" -> SavePresetDialog(onPresetSave) { optionSelected = "" }
+        "update_preset" -> UpdatePresetDialog(onPresetUpdate) { optionSelected = "" }
+        "load_preset" -> LoadPresetDialog(onPresetSelect) { optionSelected = "" }
+        "delete_preset" -> DeletePresetDialog(onPresetDelete) { optionSelected = "" }
+    }
 }
 
 @Composable
-private fun ConfigMenuItems(
+private fun TopBarMenuConfigItems(
     tryGlobal: Boolean,
     toggleGlobal: () -> Unit
 ) {
-    // Handles the menu items used to configure the equalizer
+    // Handles the menu items used to configure the equalizer and provide general info
 
     val uriHandler = LocalUriHandler.current
 
@@ -555,158 +494,7 @@ private fun ConfigMenuItems(
 }
 
 @Composable
-private fun PresetDialogStructure(
-    showDialog: Boolean,
-    presetIds: List<String>,
-    presetAction: (String) -> Unit,
-    onDismiss: () -> Unit,
-    isDropdown: Boolean,
-
-    iconImageVector: ImageVector,
-    iconDescription: String,
-    title: String,
-    bodyText: String,
-    textFieldLabel: String
-) {
-    var selectedPreset by remember { mutableStateOf("") }
-    val presetInputState = rememberTextFieldState("")
-
-    // A pop-up dialog to request the user input a preset ID to save the current EQ levels to
-    if (showDialog) {
-        AlertDialog(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            iconContentColor = MaterialTheme.colorScheme.secondary,
-            titleContentColor = MaterialTheme.colorScheme.tertiary,
-            textContentColor = MaterialTheme.colorScheme.tertiary,
-
-            icon = {
-                Icon(
-                    imageVector = iconImageVector,
-                    contentDescription = iconDescription
-                )
-            },
-            title = {
-                Text(
-                    title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.secondary,
-                )
-            },
-            onDismissRequest = {
-                onDismiss()
-                // Resetting text field state
-                presetInputState.setTextAndPlaceCursorAtEnd("")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        if (isDropdown) {
-                            presetAction(selectedPreset)
-                        } else {
-                            presetAction(presetInputState.text.toString())
-                        }
-                        onDismiss()
-                        // Resetting text field state
-                        presetInputState.setTextAndPlaceCursorAtEnd("")
-                    }
-                ) { SmallSecondaryText(stringResource(R.string.dialog_confirm)) }
-            },
-            dismissButton = {
-                TextButton(
-                    onClick = {
-                        onDismiss()
-                        // Resetting text field state
-                        presetInputState.setTextAndPlaceCursorAtEnd("")
-                    }
-                ) { SmallSecondaryText(stringResource(R.string.dialog_dismiss)) }
-            },
-            text = {
-                Column {
-                    // Main body text of the dialog if extra detail required
-                    Text(
-                        text = bodyText,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.fillMaxWidth(),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // Adapts dialog contents depending on what's required - either a dropdown menu or a text field
-                    if (isDropdown) {
-                        PresetIdsDropDown(
-                            presetIds,
-                            onSelect = { id -> selectedPreset = id }
-                        )
-                    } else {
-                        OutlinedTextField(
-                            state = presetInputState,
-                            label = { Text(textFieldLabel) },
-                            textStyle = MaterialTheme.typography.bodySmall,
-
-                            colors = TextFieldDefaults.colors(
-                                unfocusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                                unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                                unfocusedTextColor = MaterialTheme.colorScheme.tertiary
-                            )
-                        )
-                    }
-                }
-            }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PresetIdsDropDown(
-    presetIds: List<String>,
-    onSelect: (String) -> Unit
-) {
-    var dropdownOpen by remember { mutableStateOf(false) }
-    val textFieldState = rememberTextFieldState(stringResource(R.string.preset_dropdown_field_default))
-
-    // Dropdown box to select a preset you want to do something to
-    ExposedDropdownMenuBox(
-        expanded = dropdownOpen,
-        onExpandedChange = { dropdownOpen = it }
-    ) {
-        OutlinedTextField(
-            readOnly = true,
-            state = textFieldState,
-            label = { stringResource(R.string.preset_dropdown_field_label) },
-            textStyle = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-
-            colors = TextFieldDefaults.colors(
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.primary,
-                unfocusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                focusedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                unfocusedTextColor = MaterialTheme.colorScheme.tertiary
-            )
-        )
-        ExposedDropdownMenu(
-            expanded = dropdownOpen,
-            onDismissRequest = { dropdownOpen = false }
-        ) {
-            presetIds.forEach { id ->
-                DropdownMenuItem(
-                    onClick = {
-                        textFieldState.setTextAndPlaceCursorAtEnd(id)
-                        onSelect(id)
-                        dropdownOpen = false
-                    },
-                    text = { SmallSecondaryText(id) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SmallSecondaryText(inputText: String) {
+fun SmallSecondaryText(inputText: String) {
     Text(
         text = inputText,
         style = MaterialTheme.typography.bodySmall,

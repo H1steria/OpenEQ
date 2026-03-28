@@ -7,7 +7,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
@@ -44,16 +43,12 @@ class MainActivityViewModel : ViewModel() {
 
     // State of the sliders (and so EQ levels)
     var eqLevels = List(eqFrequencyBands.size) { 0f }.toMutableStateList()
-
-    // List of preset ID strings
-    var presetIdStrings = mutableStateListOf<String>()
 }
 
 class MainActivity : ComponentActivity() {
     val myViewModel: MainActivityViewModel by viewModels()
 
     val appSettings by lazy { SharedPreferencesSettings(this) }
-    private val appDb by lazy { RoomDatabaseHandler(lifecycleScope) }
     private val foregroundServiceHandler by lazy { ForegroundServiceHandler(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -83,18 +78,16 @@ class MainActivity : ComponentActivity() {
                     frequencyBands = myViewModel.eqFrequencyBandsStr,
                     eqRange = myViewModel.eqRange,
 
-                    presetIds = myViewModel.presetIdStrings,
-
                     onPresetUpdate = { presetId ->
-                        appDb.updatePreset(presetId, myViewModel.eqLevels)
+                        RoomDatabaseHandler.updatePreset(presetId, myViewModel.eqLevels, lifecycleScope)
                     },
                     onPresetSave = { presetId ->
-                        val status = appDb.addPreset(presetId, myViewModel.eqLevels)
-                        if (status) myViewModel.presetIdStrings += presetId
+                        RoomDatabaseHandler.addPreset(presetId, myViewModel.eqLevels, lifecycleScope)
                     },
                     onPresetSelect = { presetId ->
-                        appDb.getPreset(
-                            presetId
+                        RoomDatabaseHandler.getPreset(
+                            presetId,
+                            lifecycleScope
                         ) { presetVals ->
                             // Updating the EQ levels to the retrieved values
                             myViewModel.eqLevels.clear()
@@ -102,15 +95,15 @@ class MainActivity : ComponentActivity() {
                         }
                     },
                     onPresetDelete = { presetId ->
-                        val status = appDb.deletePreset(
-                            presetId
+                        RoomDatabaseHandler.deletePreset(
+                            presetId,
+                            lifecycleScope
                         ) {
                             // Clearing the EQ levels
                             for (i in 0..<myViewModel.eqLevels.size) {
                                 myViewModel.eqLevels[i] = 0f
                             }
                         }
-                        if (status) myViewModel.presetIdStrings.remove(presetId)
                     }
                 )
             }
@@ -119,7 +112,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         // Saves the latest EQ levels to the database (blocking to ensure completion)
-        appDb.updatePresetBlocking("latest_eq_levels", myViewModel.eqLevels)
+        RoomDatabaseHandler.updatePresetBlocking(getString(R.string.db_key_recent_eq_levels), myViewModel.eqLevels)
         RoomDatabaseHandler.dbInitialized = false
 
         // Unbinds from the foreground service if it's bound
@@ -148,11 +141,12 @@ class MainActivity : ComponentActivity() {
 
     private fun appDatabaseInit() {
         // Starts the app database to access stored preset info
-        appDb.buildDatabase(this)
+        RoomDatabaseHandler.buildDatabase(this)
 
         // Checking if a "latest_eq_levels" preset already exists, if so setting my EQ levels to it
-        val status = appDb.getPreset(
-            "latest_eq_levels"
+        val status = RoomDatabaseHandler.getPreset(
+            getString(R.string.db_key_recent_eq_levels),
+            lifecycleScope
         ) { values ->
             myViewModel.eqLevels.clear()
             myViewModel.eqLevels.addAll(values)
@@ -160,11 +154,8 @@ class MainActivity : ComponentActivity() {
 
         // If "latest_eq_levels" preset doesn't exist, need to create one
         if (!status) {
-            appDb.addPreset("latest_eq_levels", myViewModel.eqLevels)
+            RoomDatabaseHandler.addPreset(getString(R.string.db_key_recent_eq_levels), myViewModel.eqLevels, lifecycleScope)
         }
-
-        myViewModel.presetIdStrings.addAll(RoomDatabaseHandler.idStrings)
-        myViewModel.presetIdStrings.remove("latest_eq_levels") // Don't want this to appear in the UI
     }
 
     private fun toggleEq() {
@@ -195,7 +186,7 @@ class MainActivity : ComponentActivity() {
             // If device doesn't support global EQ, show an error message
             Toast.makeText(
                 this,
-                getString(R.string.global_mix_error_toast_message),
+                getString(R.string.attach_global_mix_error_message),
                 Toast.LENGTH_LONG
             )
                 .show()
