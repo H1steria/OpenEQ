@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.google.gson.Gson
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
@@ -38,67 +39,55 @@ object RoomDatabaseHandler {
         stringPresetId: String,
         eqLevels: List<Float>,
         myScope: CoroutineScope
-    ) {
+    ): Job? {
         // Checks ID is valid
         if (idStrings.contains(stringPresetId)) {
-            return
+            return null
         }
 
         // Launches a coroutine to save the current EQ levels as a new preset in the database
-        myScope.launch {
+        val retJob = myScope.launch {
             val serializedEqLevels = Gson().toJson(eqLevels)
             db?.userDao()?.addPreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
 
             // Once preset added to database, adds the new preset ID to the list of preset ID string
             idStrings += stringPresetId
         }
+
+        return retJob
     }
 
     fun updatePreset(
         stringPresetId: String,
         eqLevels: List<Float>,
         myScope: CoroutineScope
-    ) {
+    ): Job? {
         if (!idStrings.contains(stringPresetId)) {
-            return
+            return null
         }
 
         // Launches coroutine to update preset in database to current EQ levels
-        myScope.launch {
+        val retJob = myScope.launch {
             val serializedEqLevels = Gson().toJson(eqLevels)
 
             db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
         }
-    }
 
-    fun updatePresetBlocking(
-        stringPresetId: String,
-        eqLevels: List<Float>,
-    ) {
-        if (!idStrings.contains(stringPresetId)) {
-            return
-        }
-
-        // Sometimes preset update needs to be blocking to ensure completion, so have this option
-        runBlocking {
-            val serializedEqLevels = Gson().toJson(eqLevels)
-
-            db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
-        }
+        return retJob
     }
 
     fun getPreset(
         stringPresetId: String,
         myScope: CoroutineScope,
         onPresetRetrieved: (List<Float>) -> Unit
-    ): Boolean {
+    ): Job? {
         // Checking whether the desired preset exists or not
         if (!idStrings.contains(stringPresetId)) {
-            return false
+            return null
         }
 
         // Launches a coroutine to find the wanted preset and hand it back
-        myScope.launch {
+        val retJob = myScope.launch {
             val presetLevelsJson: Preset? = db?.userDao()?.getPreset(stringPresetId)
 
             if (presetLevelsJson != null) {
@@ -108,26 +97,28 @@ object RoomDatabaseHandler {
             }
         }
 
-        return true
+        return retJob
     }
 
     fun deletePreset(
         stringPresetId: String,
         myScope: CoroutineScope,
         onPresetDelete: () -> Unit
-    ) {
+    ): Job? {
         // Checking whether the desired preset exists or not
         if (!idStrings.contains(stringPresetId)) {
-            return
+            return null
         }
 
         // Launches coroutine to remove preset from database
-        myScope.launch {
+        val retJob = myScope.launch {
             db?.userDao()?.deletePreset(stringPresetId)
             idStrings.remove(stringPresetId)
 
             onPresetDelete()
         }
+
+        return retJob
     }
 
     private fun getAllPresetIds() {

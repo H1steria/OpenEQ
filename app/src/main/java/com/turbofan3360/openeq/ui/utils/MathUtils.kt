@@ -6,8 +6,7 @@ fun roundOneDP(floatValue: Float): Float {
     // Utility to round floats to one decimal place
     if (floatValue >= 0) {
         return (floatValue * 10f + 0.5f).toInt() / 10f
-    }
-    else {
+    } else {
         return (floatValue * 10f - 0.5f).toInt() / 10f
     }
 }

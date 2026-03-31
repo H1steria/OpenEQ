@@ -1,6 +1,5 @@
 package com.turbofan3360.openeq.audioprocessing
 
-import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.audiofx.Equalizer
 import kotlin.math.min
