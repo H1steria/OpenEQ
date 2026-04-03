@@ -1,7 +1,9 @@
 package com.turbofan3360.openeq
 
+import android.content.Context
 import android.media.MediaPlayer
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
 import com.turbofan3360.openeq.audioprocessing.addEqualizer
 import com.turbofan3360.openeq.audioprocessing.delEqualizer
 import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
@@ -29,10 +31,12 @@ private const val DECIBEL_TO_MILLIBEL = 100f
 @RunWith(AndroidJUnit4::class)
 class EqUtilsTests {
     lateinit var testingMediaPlayer: MediaPlayer
+    lateinit var appContext: Context
 
     @Before
     fun setup() {
         testingMediaPlayer = MediaPlayer()
+        appContext = InstrumentationRegistry.getInstrumentation().targetContext
     }
 
     @Test
@@ -71,7 +75,7 @@ class EqUtilsTests {
     @Test
     fun getEqRange_isCorrect() {
         // Testing the function to ge the device EQ range
-        val range = getEqRange()
+        val range = getEqRange(appContext)
 
         assertTrue(range.size == 2)
         assertTrue(range[0] < range[1])
@@ -81,7 +85,7 @@ class EqUtilsTests {
     @Test
     fun getEqBands_isCorrect() {
         // Testing the function to return device EQ bands
-        val bands = getEqBands()
+        val bands = getEqBands(appContext)
 
         // Checking values actually returned
         assertTrue(bands.isNotEmpty())
