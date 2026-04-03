@@ -22,7 +22,6 @@ import com.turbofan3360.openeq.audioprocessing.getEqRange
 import com.turbofan3360.openeq.audioprocessing.globalEqAllowed
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
-import kotlinx.coroutines.runBlocking
 
 class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
     val context = getApplication<Application>()
@@ -115,17 +114,11 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
-        // Saves the latest EQ levels to the database (blocking to ensure completion)
-        val retJob = RoomDatabaseHandler.updatePreset(
+        // Saves the latest EQ levels to the database (blocking to ensure proper completion)
+        RoomDatabaseHandler.updatePresetBlocking(
             getString(R.string.db_key_recent_eq_levels),
-            myViewModel.eqLevels,
-            lifecycleScope
+            myViewModel.eqLevels
         )
-
-        // Waiting for preset update job to complete
-        runBlocking {
-            retJob?.join()
-        }
 
         RoomDatabaseHandler.dbInitialized = false
 

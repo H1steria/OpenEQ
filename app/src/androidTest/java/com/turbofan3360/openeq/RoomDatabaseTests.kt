@@ -92,6 +92,31 @@ class RoomDatabaseTests {
     }
 
     @Test
+    fun updateDatabaseItemBlocking_isCorrect() = runTest {
+        var returnedList = listOf<Float>()
+        // Adding a value that can then be edited, waiting for the DB op to complete
+        var job = RoomDatabaseHandler.addPreset("test_db_update_blocking", listOf(1.0f, 2.0f, 0.0f, -1.0f, -2.0f), this)
+        job?.join()
+
+        // Updating the preset ID in the database (thing that's being testing)
+        RoomDatabaseHandler.updatePresetBlocking("test_db_update_blocking", listOf(2.4f, 4.1f, 0.0f, -2.2f, -4.5f))
+
+        // Getting the values back that I just wrote to the DB, waiting for op to complete
+        job = RoomDatabaseHandler.getPreset("test_db_update_blocking", this) { returnedList = it }
+        job?.join()
+
+        // Checking values
+        assertEquals(listOf(2.4f, 4.1f, 0.0f, -2.2f, -4.5f), returnedList)
+
+        // Checking that updating non-existing item doesn't cause a crash
+        RoomDatabaseHandler.updatePresetBlocking("some_invalid_id", listOf(1f, 2f, 3f, 4f, 5f))
+
+        // Deleting testing preset from DB
+        job = RoomDatabaseHandler.deletePreset("test_db_update_blocking", this) {}
+        job?.join()
+    }
+
+    @Test
     fun getDatabaseItem_isCorrect() = runTest {
         var returnedList = listOf<Float>()
         var returnedBool = false

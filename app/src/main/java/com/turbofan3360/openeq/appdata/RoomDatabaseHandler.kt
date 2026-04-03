@@ -99,6 +99,22 @@ object RoomDatabaseHandler {
         return retJob
     }
 
+    fun updatePresetBlocking(
+        stringPresetId: String,
+        eqLevels: List<Float>,
+    ) {
+        if (!idStrings.contains(stringPresetId)) {
+            return
+        }
+
+        // Launches coroutine to update preset in database to current EQ levels
+        runBlocking {
+            val serializedEqLevels = Gson().toJson(eqLevels)
+
+            db?.userDao()?.updatePreset(Preset(presetId = stringPresetId, eqLevels = serializedEqLevels))
+        }
+    }
+
     fun getPreset(
         stringPresetId: String,
         myScope: CoroutineScope,
