@@ -1,7 +1,9 @@
 package com.turbofan3360.openeq.audioprocessing
 
-import android.media.MediaPlayer
+import android.content.Context
+import android.media.AudioManager
 import android.media.audiofx.Equalizer
+import kotlin.math.min
 import kotlin.math.round
 
 private const val DECIBEL_TO_MILLIBEL = 100f
@@ -31,18 +33,19 @@ fun setEqualizer(
     eq: Equalizer,
     levels: List<Float>
 ) {
+    // Working out the maximum number of times I can loop and set an EQ level
+    // Can't be more than the number of bands, but must be equal to the number of levels passed
+    val loopLim = min(levels.size, eq.numberOfBands.toInt())
+
     // Sets levels of an equalizer instance to the given values
-    for (i in 0..<levels.size) {
+    for (i in 0..<loopLim) {
         eq.setBandLevel(i.toShort(), round(levels[i] * DECIBEL_TO_MILLIBEL).toInt().toShort())
     }
 }
 
-fun getEqBands(): List<Float> {
-    // Creates a temporary media player so it can grab a valid audio session ID, and get EQ bands
-    val tempMediaPlayer = MediaPlayer()
-
+fun getEqBands(context: Context): List<Float> {
     // Returns a list of the center frequencies of the EQ bands available in Hz
-    val eqObj = addEqualizer(tempMediaPlayer.audioSessionId)
+    val eqObj = addEqualizer(getAudioSessionId(context))
     val frequencies = mutableListOf<Float>()
 
     for (i in 0..<eqObj.numberOfBands) {
@@ -50,15 +53,15 @@ fun getEqBands(): List<Float> {
     }
 
     delEqualizer(eqObj)
-    tempMediaPlayer.release()
 
     return frequencies.toList()
 }
 
-fun getEqRange(): List<Float> {
+fun getEqRange(context: Context): List<Float> {
     // Returns a [min, max] float value range that the EQ lets you select on this device
-    val eqObj = addEqualizer(0)
+    val eqObj = addEqualizer(getAudioSessionId(context))
     val eqRange = eqObj.getBandLevelRange()
+
     delEqualizer(eqObj)
 
     return listOf(eqRange[0] / DECIBEL_TO_MILLIBEL, eqRange[1] / DECIBEL_TO_MILLIBEL)
@@ -95,4 +98,12 @@ fun globalEqAllowed(): Boolean {
     } catch (_: RuntimeException) {
         return false
     }
+}
+
+private fun getAudioSessionId(context: Context): Int {
+    // Generates a valid audio session ID from the system and passes it back
+    val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+    val sessionId = audioManager.generateAudioSessionId()
+
+    return sessionId
 }

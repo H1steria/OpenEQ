@@ -107,7 +107,7 @@ class ForegroundServiceHandler(context: Context) {
 
     private fun checkNotificationPermission(activity: Activity): Boolean {
         // Function to check whether notification permission is given, and request it if not
-        // Below Android 13, is permission automatically granted for notifications
+        // Below Android 13, permission is automatically granted for notifications
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return true
         }

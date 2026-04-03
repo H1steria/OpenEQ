@@ -1,5 +1,6 @@
 package com.turbofan3360.openeq
 
+import android.app.Application
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -10,7 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.lifecycleScope
 import com.turbofan3360.openeq.appdata.RoomDatabaseHandler
 import com.turbofan3360.openeq.appdata.SharedPreferencesSettings
@@ -21,8 +22,11 @@ import com.turbofan3360.openeq.audioprocessing.getEqRange
 import com.turbofan3360.openeq.audioprocessing.globalEqAllowed
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
+import kotlinx.coroutines.runBlocking
 
-class MainActivityViewModel : ViewModel() {
+class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
+    val context = getApplication<Application>()
+
     // State - whether EQ service is enabled or not
     var eqEnabled by mutableStateOf(false)
 
@@ -33,13 +37,13 @@ class MainActivityViewModel : ViewModel() {
     var tryGlobalAudio by mutableStateOf(false)
 
     // EQ frequency bands in milliHz
-    val eqFrequencyBands = getEqBands()
+    val eqFrequencyBands = getEqBands(context)
 
     // String labels for EQ frequency bands
     val eqFrequencyBandsStr = eqFrequenciesToLabels(eqFrequencyBands)
 
     // Supported range of EQ bands (in dB)
-    val eqRange = getEqRange()
+    val eqRange = getEqRange(context)
 
     // State of the sliders (and so EQ levels)
     var eqLevels = List(eqFrequencyBands.size) { 0f }.toMutableStateList()
@@ -48,7 +52,7 @@ class MainActivityViewModel : ViewModel() {
 class MainActivity : ComponentActivity() {
     val myViewModel: MainActivityViewModel by viewModels()
 
-    val appSettings by lazy { SharedPreferencesSettings(this) }
+    val appSettings by lazy { SharedPreferencesSettings(this, "app_settings") }
     private val foregroundServiceHandler by lazy { ForegroundServiceHandler(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -112,7 +116,17 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         // Saves the latest EQ levels to the database (blocking to ensure completion)
-        RoomDatabaseHandler.updatePresetBlocking(getString(R.string.db_key_recent_eq_levels), myViewModel.eqLevels)
+        val retJob = RoomDatabaseHandler.updatePreset(
+            getString(R.string.db_key_recent_eq_levels),
+            myViewModel.eqLevels,
+            lifecycleScope
+        )
+
+        // Waiting for preset update job to complete
+        runBlocking {
+            retJob?.join()
+        }
+
         RoomDatabaseHandler.dbInitialized = false
 
         // Unbinds from the foreground service if it's bound
@@ -141,19 +155,19 @@ class MainActivity : ComponentActivity() {
 
     private fun appDatabaseInit() {
         // Starts the app database to access stored preset info
-        RoomDatabaseHandler.buildDatabase(this)
+        RoomDatabaseHandler.buildDatabase("preset-database", this)
 
-        // Checking if a "latest_eq_levels" preset already exists, if so setting my EQ levels to it
-        val status = RoomDatabaseHandler.getPreset(
-            getString(R.string.db_key_recent_eq_levels),
-            lifecycleScope
-        ) { values ->
-            myViewModel.eqLevels.clear()
-            myViewModel.eqLevels.addAll(values)
-        }
-
-        // If "latest_eq_levels" preset doesn't exist, need to create one
-        if (!status) {
+        // Checking if a "latest_eq_levels" preset already exists; if so setting my EQ levels to it
+        if (RoomDatabaseHandler.idStrings.contains(getString(R.string.db_key_recent_eq_levels))) {
+            RoomDatabaseHandler.getPreset(
+                getString(R.string.db_key_recent_eq_levels),
+                lifecycleScope
+            ) { values ->
+                myViewModel.eqLevels.clear()
+                myViewModel.eqLevels.addAll(values)
+            }
+        } else {
+            // Otherwise, one needs to be created
             RoomDatabaseHandler.addPreset(
                 getString(R.string.db_key_recent_eq_levels),
                 myViewModel.eqLevels,
