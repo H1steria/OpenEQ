@@ -18,7 +18,7 @@ This is the repository for OpenEQ, an open-source, privacy respecting, and simpl
 
 ### Installation: ###
 
-Please go to the [releases page](https://github.com/Turbofan3360/OpenEQ/releases) to download the .apk which you can then install. I intend to get this app on F-Droid in the future, and potentially on the Google Play Store, but I want to complete some more development first.
+Please go to the [releases page](https://github.com/Turbofan3360/OpenEQ/releases) to download the .apk which you can then install. I intend to get this app on F-Droid in the future, and potentially on the Google Play Store.
 
 ### Compatibility: ###
 
