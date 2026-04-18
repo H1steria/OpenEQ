@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">OpenEQ</string>
+    <string name="app_name">Reto 3</string>
 
     <string name="db_key_recent_eq_levels">latest_eq_levels</string>
 

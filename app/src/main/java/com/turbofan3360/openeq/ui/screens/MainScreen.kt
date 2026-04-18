@@ -67,6 +67,10 @@ import com.turbofan3360.openeq.ui.components.UpdatePresetDialog
 import com.turbofan3360.openeq.ui.components.VerticalSlider
 import com.turbofan3360.openeq.ui.utils.generateSplineControlPoints
 import com.turbofan3360.openeq.ui.utils.roundOneDP
+import androidx.compose.runtime.collectAsState
+import kotlinx.coroutines.flow.StateFlow
+import kotlin.math.log10
+import androidx.compose.foundation.layout.Box
 
 private const val SLIDER_HEIGHT_SCALAR_PORTRAIT = 0.625f
 private const val SLIDER_HEIGHT_SCALAR_LANDSCAPE = 0.8f
@@ -88,8 +92,16 @@ fun MainScreen(
     onPresetSelect: (String) -> Unit,
     onPresetSave: (String) -> Unit,
     onPresetDelete: (String) -> Unit,
-    onPresetUpdate: (String) -> Unit
+    onPresetUpdate: (String) -> Unit,
+    audioSpectrumFlow: StateFlow<FloatArray>? = null,
+    processingTimeFlow: StateFlow<Double>? = null
 ) {
+    val defaultBuffer = remember { FloatArray(0) }
+    val spectrumBuffer by (audioSpectrumFlow?.collectAsState(initial = defaultBuffer)
+        ?: remember { mutableStateOf(defaultBuffer) })
+
+    val procTime by (processingTimeFlow?.collectAsState(initial = 0.0) ?: remember { mutableStateOf(0.0) })
+
     // Saving state of thumb positions on sliders
     val thumbPositions = remember { List(frequencyBands.size) { Offset.Zero }.toMutableStateList() }
     // Grabbing screen orientation and setting it as boolean
@@ -119,18 +131,27 @@ fun MainScreen(
                         .fillMaxWidth()
                         .padding(10.dp),
                     // Shifting everything to the right first
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.Bottom
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Adding the button to zero all sliders
                     ResetButton(updateEqLevel, frequencyBands.size)
+
+                    // Mostrar tiempo de procesamiento
+                    Text(
+                        text = "Tc: ${"%.2f".format(procTime)} ms",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+
+                    PowerButton(eqEnabled, eqToggle)
                 }
             }
         },
-        // Creating the EQ on/off toggle button at the bottom
-        floatingActionButton = { PowerButton(eqEnabled, eqToggle) },
-        // Centering the EQ on/off toggle button
-        floatingActionButtonPosition = if (isPortrait) FabPosition.Center else FabPosition.End
+//        // Creating the EQ on/off toggle button at the bottom
+//        floatingActionButton = { PowerButton(eqEnabled, eqToggle) },
+//        // Centering the EQ on/off toggle button
+//        floatingActionButtonPosition = if (isPortrait) FabPosition.Center else FabPosition.End
 
         // Defining content: Draws a colored background that fills the page
         // Then draws the EQ Sliders on it, and then a curve between the EQ sliders
@@ -148,18 +169,38 @@ fun MainScreen(
             val sidePadding =
                 with(LocalDensity.current) { innerPadding.calculateLeftPadding(LayoutDirection.Ltr).toPx() }
 
-            EQSliders(
-                listOf(scope.maxWidth, scope.maxHeight),
-                isPortrait,
-                frequencyBands,
-                eqRange,
-                eqLevels,
-                updateEqLevel,
-                thumbPositions
-            )
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Nuevo espacio reservado y centrado exclusivamente para el analizador de espectro
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(150.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (eqEnabled && spectrumBuffer.isNotEmpty()) {
+                        SpectrumAnalyzer(
+                            spectrum = spectrumBuffer,
+                            pathColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                EQSliders(
+                    listOf(scope.maxWidth, scope.maxHeight - 150.dp),
+                    isPortrait,
+                    frequencyBands,
+                    eqRange,
+                    eqLevels,
+                    updateEqLevel,
+                    thumbPositions
+                )
+            }
 
             // Drawing the curve on top of the EQ sliders
             EQCurve(MaterialTheme.colorScheme.primary, thumbPositions, topPadding, sidePadding)
+//            if (eqEnabled && spectrumBuffer.isNotEmpty()) {
+//                SpectrumAnalyzer(spectrum = spectrumBuffer, pathColor = MaterialTheme.colorScheme.tertiary)
+//            }
         }
     }
 }
@@ -257,6 +298,9 @@ private fun EQCurve(
     Canvas(
         modifier = Modifier.fillMaxSize()
     ) {
+        // Prevent drawing before thumb positions are calculated (which avoids NaN crashes in Spline generation)
+        if (thumbPositions.any { it == Offset.Zero }) return@Canvas
+
         val path = Path()
         var pointOne: Offset
         var pointTwo: Offset
@@ -291,18 +335,39 @@ private fun EQCurve(
                 pointTwo
             )
 
-            // Adding another curve to the spline
-            path.cubicTo(
-                // Control point 1
-                x1 = point1.x - sidePadding,
-                y1 = point1.y - topPadding,
-                // Control point 2
-                x2 = point2.x - sidePadding,
-                y2 = point2.y - topPadding,
-                // Destination point
-                x3 = thumbPositions[i + 1].x - sidePadding,
-                y3 = thumbPositions[i + 1].y - topPadding
-            )
+//            // Adding another curve to the spline
+//            path.cubicTo(
+//                // Control point 1
+//                x1 = point1.x - sidePadding,
+//                y1 = point1.y - topPadding,
+//                // Control point 2
+//                x2 = point2.x - sidePadding,
+//                y2 = point2.y - topPadding,
+//                // Destination point
+//                x3 = thumbPositions[i + 1].x - sidePadding,
+//                y3 = thumbPositions[i + 1].y - topPadding
+//            )
+
+            val x1 = point1.x - sidePadding
+            val y1 = point1.y - topPadding
+            val x2 = point2.x - sidePadding
+            val y2 = point2.y - topPadding
+            val x3 = thumbPositions[i + 1].x - sidePadding
+            val y3 = thumbPositions[i + 1].y - topPadding
+
+            // Protect Skia from crashing natively due to NaN values
+            if (!x1.isNaN() && !y1.isNaN() && !x2.isNaN() && !y2.isNaN() && !x3.isNaN() && !y3.isNaN()) {
+                // Adding another curve to the spline
+                path.cubicTo(
+                    x1 = x1,
+                    y1 = y1,
+                    x2 = x2,
+                    y2 = y2,
+                    x3 = x3,
+                    y3 = y3
+                )
+            }
+
         }
         // Drawing the path
         drawPath(
@@ -340,6 +405,7 @@ private fun AppTitleBar(
         title = {
             Text(
                 stringResource(R.string.app_name),
+//                text = "Reto 3",
                 style = MaterialTheme.typography.titleLarge
             )
         },
@@ -542,6 +608,64 @@ private fun ResetButton(
         Icon(
             imageVector = Icons.Rounded.SettingsBackupRestore,
             contentDescription = stringResource(R.string.eq_reset_button_description)
+        )
+    }
+}
+
+@Composable
+private fun SpectrumAnalyzer(spectrum: FloatArray, pathColor: Color) {
+    Canvas(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 8.dp) // Centrado y con margen propio
+    ){
+        val width = size.width
+        val height = size.height
+        if (width <= 0f || height <= 0f || spectrum.isEmpty()) return@Canvas
+
+        val path = Path()
+
+        // Rango de frecuencias para mapeo a escala logarítmica (eje X)
+        val minFreq = 20f
+        val maxFreq = 22050f
+        val logMin = log10(minFreq)
+        val logMax = log10(maxFreq)
+        val logRange = logMax - logMin
+
+        var isFirstPoint = true
+
+        for (i in 1 until spectrum.size) { // Empezamos en 1 para omitir la frecuencia DC de 0Hz
+            val freq = i * 44100f / 1024f
+            if (freq < minFreq) continue
+            if (freq > maxFreq) break
+
+            // Mapeo X logarítmico
+            val x = ((log10(freq) - logMin) / logRange) * width
+
+            // Normalizar magnitud matemática y llevar a decibelios (dB)
+            // (512 * 32768) es para aproximar la amplitud de las FFT de arrays Short no normalizados
+            val mag = spectrum[i] / (512f * 32768f)
+            val db = if (mag > 1e-5f) 20 * log10(mag) else -80f
+
+            // Mapeo Y: 0 dB -> tope (0f), -80 dB -> base (height)
+            val normalizedDb = (db / -80f).coerceIn(0f, 1f)
+            val y = height * normalizedDb
+
+            if (!y.isNaN() && !x.isNaN()) {
+                if (isFirstPoint) {
+                    path.moveTo(x.toFloat(), height) // Inicia desde abajo
+                    path.lineTo(x.toFloat(), y.toFloat())
+                    isFirstPoint = false
+                } else {
+                    path.lineTo(x.toFloat(), y.toFloat())
+                }
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = pathColor,
+            style = Stroke(width = 3f)
         )
     }
 }

@@ -20,39 +20,41 @@ import com.turbofan3360.openeq.audioprocessing.eqFrequenciesToLabels
 import com.turbofan3360.openeq.audioprocessing.getEqBands
 import com.turbofan3360.openeq.audioprocessing.getEqRange
 import com.turbofan3360.openeq.audioprocessing.globalEqAllowed
+import com.turbofan3360.openeq.audioprocessing.AudioEngine
+import com.turbofan3360.openeq.audioprocessing.FastConvEQ
 import com.turbofan3360.openeq.ui.screens.MainScreen
 import com.turbofan3360.openeq.ui.theme.OpenEQTheme
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class MainActivityViewModel(application: Application) : AndroidViewModel(application) {
     val context = getApplication<Application>()
+
+    val audioEngine = AudioEngine(context)
 
     // State - whether EQ service is enabled or not
     var eqEnabled by mutableStateOf(false)
 
     // Whether the device supports global audio EQ
-    val globalAudioAllowed = globalEqAllowed()
+//    val globalAudioAllowed = false
 
     // Whether to try and attach the EQ to the global audio mix
     var tryGlobalAudio by mutableStateOf(false)
 
     // EQ frequency bands in milliHz
-    val eqFrequencyBands = getEqBands(context)
+    val eqFrequencyBandsStr = FastConvEQ.BAND_LABELS
+    val eqRange = listOf(-15f, 15f) // +/- 15 dB
+    var eqLevels = List(eqFrequencyBandsStr.size) { 0f }.toMutableStateList()
 
-    // String labels for EQ frequency bands
-    val eqFrequencyBandsStr = eqFrequenciesToLabels(eqFrequencyBands)
-
-    // Supported range of EQ bands (in dB)
-    val eqRange = getEqRange(context)
-
-    // State of the sliders (and so EQ levels)
-    var eqLevels = List(eqFrequencyBands.size) { 0f }.toMutableStateList()
 }
 
 class MainActivity : ComponentActivity() {
     val myViewModel: MainActivityViewModel by viewModels()
 
     val appSettings by lazy { SharedPreferencesSettings(this, "app_settings") }
-    private val foregroundServiceHandler by lazy { ForegroundServiceHandler(this) }
+    //private val foregroundServiceHandler by lazy { ForegroundServiceHandler(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     // Saving EQ levels + passing them to the foreground service managing EQ objects
                     updateEqLevel = { index: Int, value: Float ->
                         myViewModel.eqLevels[index] = value
-                        foregroundServiceHandler.updateEqLevels(myViewModel.eqLevels)
+                        myViewModel.audioEngine.updateEq(myViewModel.eqLevels.toList())
                     },
 
                     frequencyBands = myViewModel.eqFrequencyBandsStr,
@@ -92,9 +94,11 @@ class MainActivity : ComponentActivity() {
                             presetId,
                             lifecycleScope
                         ) { presetVals ->
-                            // Updating the EQ levels to the retrieved values
-                            myViewModel.eqLevels.clear()
-                            myViewModel.eqLevels.addAll(presetVals)
+                            // Safely update the EQ levels to the retrieved values matching length, without changing the list size
+                            for (i in myViewModel.eqLevels.indices) {
+                                myViewModel.eqLevels[i] = if (i < presetVals.size) presetVals[i] else 0f
+                            }
+                            myViewModel.audioEngine.updateEq(myViewModel.eqLevels.toList())
                         }
                     },
                     onPresetDelete = { presetId ->
@@ -102,65 +106,82 @@ class MainActivity : ComponentActivity() {
                             presetId,
                             lifecycleScope
                         ) {
-                            // Clearing the EQ levels
+                            // Clearing the EQ levels back to default
                             for (i in 0..<myViewModel.eqLevels.size) {
                                 myViewModel.eqLevels[i] = 0f
                             }
+                            myViewModel.audioEngine.updateEq(myViewModel.eqLevels.toList())
                         }
-                    }
+                    },
+                    audioSpectrumFlow = myViewModel.audioEngine.spectrumFlow,
+                    processingTimeFlow = myViewModel.audioEngine.processingTimeFlow
                 )
             }
         }
     }
 
     override fun onDestroy() {
-        // Saves the latest EQ levels to the database (blocking to ensure proper completion)
         RoomDatabaseHandler.updatePresetBlocking(
             getString(R.string.db_key_recent_eq_levels),
             myViewModel.eqLevels
         )
-
         RoomDatabaseHandler.dbInitialized = false
 
-        // Unbinds from the foreground service if it's bound
-        foregroundServiceHandler.unbindForegroundService()
-        // Calls the onDestroy() of the parent class to properly destroy the activity
+        myViewModel.audioEngine.stop()
+
         super.onDestroy()
     }
 
     private fun appDataInit() {
-        // Calls the function to initialize the database with stored app data
         appDatabaseInit()
 
-        // Calls the function to initialize stored app settings
         myViewModel.tryGlobalAudio = appSettings.getAppSettingBoolean(
             getString(R.string.shared_preferences_global_mix_key),
             false
         )
 
-        // Re-binds to the foreground service if it was left running upon last app destruction
-        foregroundServiceHandler.findMediaListenService(
-            { myViewModel.eqEnabled = true },
-            myViewModel.eqLevels,
-            myViewModel.tryGlobalAudio
-        )
+        myViewModel.audioEngine.updateEq(myViewModel.eqLevels.toList())
     }
 
     private fun appDatabaseInit() {
         // Starts the app database to access stored preset info
         RoomDatabaseHandler.buildDatabase("preset-database", this)
 
-        // Checking if a "latest_eq_levels" preset already exists; if so setting my EQ levels to it
+        val currentBandCount = myViewModel.eqFrequencyBandsStr.size
+
+        // Checking if a "latest_eq_levels" preset already exists
         if (RoomDatabaseHandler.idStrings.contains(getString(R.string.db_key_recent_eq_levels))) {
             RoomDatabaseHandler.getPreset(
                 getString(R.string.db_key_recent_eq_levels),
                 lifecycleScope
             ) { values ->
-                myViewModel.eqLevels.clear()
-                myViewModel.eqLevels.addAll(values)
+                if (values.size == currentBandCount) {
+                    for (i in 0 until currentBandCount) {
+                        myViewModel.eqLevels[i] = values[i]
+                    }
+                } else {
+                    // Si el tamaño es diferente (ej. venía de 5 bandas y ahora son 10)
+                    // Reiniciamos los niveles in-place sin modificar la longitud real
+                    for (i in 0 until currentBandCount) {
+                        myViewModel.eqLevels[i] = 0f
+                    }
+
+                    // Actualizamos la base de datos con el nuevo formato
+                    RoomDatabaseHandler.updatePreset(
+                        getString(R.string.db_key_recent_eq_levels),
+                        myViewModel.eqLevels,
+                        lifecycleScope
+                    )
+                }
+                // Sincronizar con el motor de audio
+                myViewModel.audioEngine.updateEq(myViewModel.eqLevels.toList())
             }
         } else {
-            // Otherwise, one needs to be created
+            // Inicialización por primera vez
+            for (i in 0 until currentBandCount) {
+                myViewModel.eqLevels[i] = 0f
+            }
+
             RoomDatabaseHandler.addPreset(
                 getString(R.string.db_key_recent_eq_levels),
                 myViewModel.eqLevels,
@@ -170,45 +191,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun toggleEq() {
-        // Handles starting/stopping the EQ foreground service
-        // If EQ not already enabled, enable it:
         if (!myViewModel.eqEnabled) {
-            // Started depends on whether user allowed notifications (notification permission required)
-            val started = foregroundServiceHandler.startMediaListenService(
-                this,
-                myViewModel.eqLevels,
-                myViewModel.tryGlobalAudio
-            )
+            // Verificar permiso de micrófono en tiempo de ejecución (Requisito de Android)
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 1)
+                return
+            }
 
-            myViewModel.eqEnabled = started
+            // Iniciar la captura y el procesamiento
+            myViewModel.audioEngine.updateEq(myViewModel.eqLevels.toList())
+            myViewModel.audioEngine.start()
+            myViewModel.eqEnabled = true
         } else {
-            foregroundServiceHandler.stopMediaListenService()
+            // Detener
+            myViewModel.audioEngine.stop()
             myViewModel.eqEnabled = false
         }
     }
 
     private fun toggleGlobalAudio() {
-        // Toggles whether to attach EQ to the global audio mix (not supported on all devices)
-        if (myViewModel.globalAudioAllowed) {
-            myViewModel.tryGlobalAudio = !myViewModel.tryGlobalAudio
+        // la idea de "Global Audio Mix" ya no aplica.
+        // Mostramos un mensaje indicando que no está disponible en este modo.
+        Toast.makeText(
+            this,
+            "El modo Global Mix no aplica usando captura de Micrófono directo.",
+            Toast.LENGTH_LONG
+        ).show()
 
-            foregroundServiceHandler.updateGlobalAudio(myViewModel.tryGlobalAudio)
-        } else {
-            // If device doesn't support global EQ, show an error message
-            Toast.makeText(
-                this,
-                getString(R.string.attach_global_mix_error_message),
-                Toast.LENGTH_LONG
-            )
-                .show()
-
-            myViewModel.tryGlobalAudio = false
-        }
-
-        // Saves app settings
-        appSettings.appSaveBoolean(
-            getString(R.string.shared_preferences_global_mix_key),
-            myViewModel.tryGlobalAudio
-        )
+        myViewModel.tryGlobalAudio = false
     }
 }
